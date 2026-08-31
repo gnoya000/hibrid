@@ -1,0 +1,22 @@
+routine_id: 2b1a7c3e-6f4a-4e9a-9c1e-4a7b3f9d2e10
+name: Mixed Modality Demo
+entries:
+  - exercise_id: barbell-front-squat
+    dose:
+      kind: reps
+      sets: 4
+      reps: 6
+      weight: 90
+    rest_seconds: 120
+  - exercise_id: run
+    dose:
+      kind: distance
+      distance_m: 1000
+      duration_seconds: 300
+    rest_seconds: 60
+  - exercise_id: lying-side-quads-stretch
+    dose:
+      kind: duration
+      sets: 1
+      duration_seconds: 60
+    rest_seconds: 0

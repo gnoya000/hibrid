@@ -1,0 +1,794 @@
+{
+  "hibrid-app/.lovable/project.json": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8374882,
+    "ast_hash": "5fee0b59a2996d40888c3b4f588d6c01",
+    "semantic_hash": "5fee0b59a2996d40888c3b4f588d6c01"
+  },
+  "hibrid-app/capacitor.config.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837491,
+    "ast_hash": "696411b1c5f87d5c9d6fcce09592ed52",
+    "semantic_hash": "696411b1c5f87d5c9d6fcce09592ed52"
+  },
+  "hibrid-app/components.json": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837492,
+    "ast_hash": "30d3d035361ce807021f5c54620962e9",
+    "semantic_hash": "30d3d035361ce807021f5c54620962e9"
+  },
+  "hibrid-app/eslint.config.js": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837493,
+    "ast_hash": "345bdd57e188e0e4525edcd00e5003f5",
+    "semantic_hash": "345bdd57e188e0e4525edcd00e5003f5"
+  },
+  "hibrid-app/package.json": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8374941,
+    "ast_hash": "bc83e7bd4b02e116c5aff3dda64c1c31",
+    "semantic_hash": "bc83e7bd4b02e116c5aff3dda64c1c31"
+  },
+  "hibrid-app/src/components/arcade.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837495,
+    "ast_hash": "f0bab32c2909701fe224e448ddca7db7",
+    "semantic_hash": "f0bab32c2909701fe224e448ddca7db7"
+  },
+  "hibrid-app/src/components/tab-bar.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837496,
+    "ast_hash": "1e31eadd2560e7ad74c2dfaf7a5bf49e",
+    "semantic_hash": "1e31eadd2560e7ad74c2dfaf7a5bf49e"
+  },
+  "hibrid-app/src/components/ui/accordion.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837496,
+    "ast_hash": "55f9dda62b4e3913c9b23e5015a86aef",
+    "semantic_hash": "55f9dda62b4e3913c9b23e5015a86aef"
+  },
+  "hibrid-app/src/components/ui/alert-dialog.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837497,
+    "ast_hash": "96350e949e9b7b674545430a410ab89c",
+    "semantic_hash": "96350e949e9b7b674545430a410ab89c"
+  },
+  "hibrid-app/src/components/ui/alert.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8374982,
+    "ast_hash": "f993d7e96b1e25ce50e68ed97e11d2a8",
+    "semantic_hash": "f993d7e96b1e25ce50e68ed97e11d2a8"
+  },
+  "hibrid-app/src/components/ui/aspect-ratio.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8374982,
+    "ast_hash": "c5c364545e1b25a94e9e752cd67ad048",
+    "semantic_hash": "c5c364545e1b25a94e9e752cd67ad048"
+  },
+  "hibrid-app/src/components/ui/avatar.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837499,
+    "ast_hash": "72989cd32f72c4122802540ef32525a5",
+    "semantic_hash": "72989cd32f72c4122802540ef32525a5"
+  },
+  "hibrid-app/src/components/ui/badge.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8374999,
+    "ast_hash": "81cade001fc4260f9943e18dcd79449b",
+    "semantic_hash": "81cade001fc4260f9943e18dcd79449b"
+  },
+  "hibrid-app/src/components/ui/breadcrumb.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8374999,
+    "ast_hash": "bb9ac254f12662b20d5d50b84308bf3a",
+    "semantic_hash": "bb9ac254f12662b20d5d50b84308bf3a"
+  },
+  "hibrid-app/src/components/ui/button.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375008,
+    "ast_hash": "7d07d520f486b12bd47373d694ecd2ee",
+    "semantic_hash": "7d07d520f486b12bd47373d694ecd2ee"
+  },
+  "hibrid-app/src/components/ui/calendar.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837502,
+    "ast_hash": "d849cc610e2683271f3f1c47d093cf30",
+    "semantic_hash": "d849cc610e2683271f3f1c47d093cf30"
+  },
+  "hibrid-app/src/components/ui/card.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837502,
+    "ast_hash": "d6c48ea36221b9cdc3576d305d12d5d5",
+    "semantic_hash": "d6c48ea36221b9cdc3576d305d12d5d5"
+  },
+  "hibrid-app/src/components/ui/carousel.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837503,
+    "ast_hash": "e324c68ae00cd5aed49317638abd429a",
+    "semantic_hash": "e324c68ae00cd5aed49317638abd429a"
+  },
+  "hibrid-app/src/components/ui/chart.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837503,
+    "ast_hash": "6a3baf94f2e89f1f97d4d7a28f3622d2",
+    "semantic_hash": "6a3baf94f2e89f1f97d4d7a28f3622d2"
+  },
+  "hibrid-app/src/components/ui/checkbox.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837504,
+    "ast_hash": "f78aac270ca482c8c2cb907ef6260462",
+    "semantic_hash": "f78aac270ca482c8c2cb907ef6260462"
+  },
+  "hibrid-app/src/components/ui/collapsible.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837505,
+    "ast_hash": "767631bbc344945c236f185f4078d71d",
+    "semantic_hash": "767631bbc344945c236f185f4078d71d"
+  },
+  "hibrid-app/src/components/ui/command.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837505,
+    "ast_hash": "014782599cc838b021ec68b07ad4ea02",
+    "semantic_hash": "014782599cc838b021ec68b07ad4ea02"
+  },
+  "hibrid-app/src/components/ui/context-menu.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837506,
+    "ast_hash": "3ba8244ea23df34a1dba92f3a1230dad",
+    "semantic_hash": "3ba8244ea23df34a1dba92f3a1230dad"
+  },
+  "hibrid-app/src/components/ui/dialog.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837507,
+    "ast_hash": "ef4fe8e7de8675730afe3d633b260e09",
+    "semantic_hash": "ef4fe8e7de8675730afe3d633b260e09"
+  },
+  "hibrid-app/src/components/ui/drawer.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375082,
+    "ast_hash": "8be333e8fd8e42576b1b5f72f07f4337",
+    "semantic_hash": "8be333e8fd8e42576b1b5f72f07f4337"
+  },
+  "hibrid-app/src/components/ui/dropdown-menu.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375082,
+    "ast_hash": "28d6e98d3c7811fc0514bfa69416f087",
+    "semantic_hash": "28d6e98d3c7811fc0514bfa69416f087"
+  },
+  "hibrid-app/src/components/ui/form.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375092,
+    "ast_hash": "1b0aa6302b9017ea2a1307c22a1d2983",
+    "semantic_hash": "1b0aa6302b9017ea2a1307c22a1d2983"
+  },
+  "hibrid-app/src/components/ui/hover-card.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375092,
+    "ast_hash": "1442794c5ca2a78d69e4e613b315ed3d",
+    "semantic_hash": "1442794c5ca2a78d69e4e613b315ed3d"
+  },
+  "hibrid-app/src/components/ui/input-otp.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375099,
+    "ast_hash": "65625f2f1c4d731a760aeed7b54459d1",
+    "semantic_hash": "65625f2f1c4d731a760aeed7b54459d1"
+  },
+  "hibrid-app/src/components/ui/input.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375108,
+    "ast_hash": "1d4cc52a4cd8afb3e18e45bda942bb8a",
+    "semantic_hash": "1d4cc52a4cd8afb3e18e45bda942bb8a"
+  },
+  "hibrid-app/src/components/ui/label.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375108,
+    "ast_hash": "7e35df4ca8edd0835efd97ca7937ef92",
+    "semantic_hash": "7e35df4ca8edd0835efd97ca7937ef92"
+  },
+  "hibrid-app/src/components/ui/menubar.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837512,
+    "ast_hash": "3c4121a1e78d3f424a7295381a8997d3",
+    "semantic_hash": "3c4121a1e78d3f424a7295381a8997d3"
+  },
+  "hibrid-app/src/components/ui/navigation-menu.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837513,
+    "ast_hash": "e85351147a02b29577ff83d188b63c24",
+    "semantic_hash": "e85351147a02b29577ff83d188b63c24"
+  },
+  "hibrid-app/src/components/ui/pagination.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837513,
+    "ast_hash": "fac6cdbb4bbf78b273d85cd36d6cbb49",
+    "semantic_hash": "fac6cdbb4bbf78b273d85cd36d6cbb49"
+  },
+  "hibrid-app/src/components/ui/popover.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837514,
+    "ast_hash": "f18aa1da2144f25ee60795c539c51bcd",
+    "semantic_hash": "f18aa1da2144f25ee60795c539c51bcd"
+  },
+  "hibrid-app/src/components/ui/progress.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837515,
+    "ast_hash": "55c462e5c9dd678dcf2c0c510b014ac4",
+    "semantic_hash": "55c462e5c9dd678dcf2c0c510b014ac4"
+  },
+  "hibrid-app/src/components/ui/radio-group.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837515,
+    "ast_hash": "0e1ace237a5da3197e3eb1e6683faba9",
+    "semantic_hash": "0e1ace237a5da3197e3eb1e6683faba9"
+  },
+  "hibrid-app/src/components/ui/resizable.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837516,
+    "ast_hash": "d9fcb9203c749fcab4e125a99bb12a86",
+    "semantic_hash": "d9fcb9203c749fcab4e125a99bb12a86"
+  },
+  "hibrid-app/src/components/ui/scroll-area.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837517,
+    "ast_hash": "87b65d3eb26f2b02ff35a7acea585ba5",
+    "semantic_hash": "87b65d3eb26f2b02ff35a7acea585ba5"
+  },
+  "hibrid-app/src/components/ui/select.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837517,
+    "ast_hash": "31ea1bbd6671833b010b2e852c8a55d0",
+    "semantic_hash": "31ea1bbd6671833b010b2e852c8a55d0"
+  },
+  "hibrid-app/src/components/ui/separator.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837518,
+    "ast_hash": "433d163c4ffa00b59398a0c293198b5e",
+    "semantic_hash": "433d163c4ffa00b59398a0c293198b5e"
+  },
+  "hibrid-app/src/components/ui/sheet.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837518,
+    "ast_hash": "0221fbf97b69611b47fcbc10bb27669a",
+    "semantic_hash": "0221fbf97b69611b47fcbc10bb27669a"
+  },
+  "hibrid-app/src/components/ui/sidebar.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375192,
+    "ast_hash": "83c1623eb50ebc370d7b1b84a542e369",
+    "semantic_hash": "83c1623eb50ebc370d7b1b84a542e369"
+  },
+  "hibrid-app/src/components/ui/skeleton.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.83752,
+    "ast_hash": "41b182e6e2fc3805960d41e767d4a972",
+    "semantic_hash": "41b182e6e2fc3805960d41e767d4a972"
+  },
+  "hibrid-app/src/components/ui/slider.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375208,
+    "ast_hash": "4752f1bfa26426988d325599e01c335b",
+    "semantic_hash": "4752f1bfa26426988d325599e01c335b"
+  },
+  "hibrid-app/src/components/ui/sonner.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375208,
+    "ast_hash": "97f59f60be3413196d095fcbf7383216",
+    "semantic_hash": "97f59f60be3413196d095fcbf7383216"
+  },
+  "hibrid-app/src/components/ui/switch.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837522,
+    "ast_hash": "82f5d8b0c59bb7ff305caa9f502e79ff",
+    "semantic_hash": "82f5d8b0c59bb7ff305caa9f502e79ff"
+  },
+  "hibrid-app/src/components/ui/table.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837523,
+    "ast_hash": "7cc889989d53894b659903c73aded96e",
+    "semantic_hash": "7cc889989d53894b659903c73aded96e"
+  },
+  "hibrid-app/src/components/ui/tabs.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837523,
+    "ast_hash": "56e725558c2ce72c18243bf51717f385",
+    "semantic_hash": "56e725558c2ce72c18243bf51717f385"
+  },
+  "hibrid-app/src/components/ui/textarea.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837524,
+    "ast_hash": "c7aad96fb9545210d53135a96c76ed6b",
+    "semantic_hash": "c7aad96fb9545210d53135a96c76ed6b"
+  },
+  "hibrid-app/src/components/ui/toggle-group.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837524,
+    "ast_hash": "ac26383acf721d116ca8e3ab5c5355d5",
+    "semantic_hash": "ac26383acf721d116ca8e3ab5c5355d5"
+  },
+  "hibrid-app/src/components/ui/toggle.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837525,
+    "ast_hash": "ee8c5adac74e7242b85b544db1a8fbad",
+    "semantic_hash": "ee8c5adac74e7242b85b544db1a8fbad"
+  },
+  "hibrid-app/src/components/ui/tooltip.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837526,
+    "ast_hash": "67d71db5a1ab935695d1def497f5b8a6",
+    "semantic_hash": "67d71db5a1ab935695d1def497f5b8a6"
+  },
+  "hibrid-app/src/hooks/use-mobile.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837526,
+    "ast_hash": "c0a0bdd4638c391a1dd06ac82074e60b",
+    "semantic_hash": "c0a0bdd4638c391a1dd06ac82074e60b"
+  },
+  "hibrid-app/src/lib/engine-api.ts": {
+    "mtime": 1787556542.254953,
+    "seen": 1787558073.837527,
+    "ast_hash": "1bee34775c0a45ebdb5c2882323658ef",
+    "semantic_hash": "1bee34775c0a45ebdb5c2882323658ef"
+  },
+  "hibrid-app/src/lib/error-capture.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837528,
+    "ast_hash": "f630d9686a9a989170f22eff4de7b30d",
+    "semantic_hash": "f630d9686a9a989170f22eff4de7b30d"
+  },
+  "hibrid-app/src/lib/error-page.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837528,
+    "ast_hash": "8da0ddd7569bac2676b9a5c8edff8a36",
+    "semantic_hash": "8da0ddd7569bac2676b9a5c8edff8a36"
+  },
+  "hibrid-app/src/lib/fitness-data.ts": {
+    "mtime": 1787556860.5531998,
+    "seen": 1787558073.8375292,
+    "ast_hash": "eeb08915ed6b154fdc37daf789843ccc",
+    "semantic_hash": "eeb08915ed6b154fdc37daf789843ccc"
+  },
+  "hibrid-app/src/lib/library-data.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375301,
+    "ast_hash": "6af5a38a3f34a2b554ed6f8fd2b03d8b",
+    "semantic_hash": "6af5a38a3f34a2b554ed6f8fd2b03d8b"
+  },
+  "hibrid-app/src/lib/lovable-error-reporting.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375301,
+    "ast_hash": "77368331b8ef6e6edcf1a29b24a52d39",
+    "semantic_hash": "77368331b8ef6e6edcf1a29b24a52d39"
+  },
+  "hibrid-app/src/lib/utils.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375309,
+    "ast_hash": "d9837f38cc05303254571985e3164050",
+    "semantic_hash": "d9837f38cc05303254571985e3164050"
+  },
+  "hibrid-app/src/routeTree.gen.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375318,
+    "ast_hash": "a7456168e886055a0b3ff2bc20b0f174",
+    "semantic_hash": "a7456168e886055a0b3ff2bc20b0f174"
+  },
+  "hibrid-app/src/router.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375318,
+    "ast_hash": "8f905e713b0eba7fa8148b7995a708c9",
+    "semantic_hash": "8f905e713b0eba7fa8148b7995a708c9"
+  },
+  "hibrid-app/src/routes/__root.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837533,
+    "ast_hash": "00560fd83fc204ad17265c71714d2f12",
+    "semantic_hash": "00560fd83fc204ad17265c71714d2f12"
+  },
+  "hibrid-app/src/routes/index.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837533,
+    "ast_hash": "de0a90d2b059410ebe585efae9016c89",
+    "semantic_hash": "de0a90d2b059410ebe585efae9016c89"
+  },
+  "hibrid-app/src/routes/libreria.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837534,
+    "ast_hash": "e2975081ba7cd138086ccc1f8add879c",
+    "semantic_hash": "e2975081ba7cd138086ccc1f8add879c"
+  },
+  "hibrid-app/src/routes/network.tsx": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837535,
+    "ast_hash": "c3e0f822229b3d386544770c9d4327f4",
+    "semantic_hash": "c3e0f822229b3d386544770c9d4327f4"
+  },
+  "hibrid-app/src/routes/sessione.tsx": {
+    "mtime": 1787556542.2909913,
+    "seen": 1787558073.837535,
+    "ast_hash": "ba998a8afad36eeaedcc1ee2216b2dfb",
+    "semantic_hash": "ba998a8afad36eeaedcc1ee2216b2dfb"
+  },
+  "hibrid-app/src/server.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837536,
+    "ast_hash": "c7bbc49bb70e318af618d92775ee0f27",
+    "semantic_hash": "c7bbc49bb70e318af618d92775ee0f27"
+  },
+  "hibrid-app/src/start.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837537,
+    "ast_hash": "0502f82c58afce5012b4c102e6fe2437",
+    "semantic_hash": "0502f82c58afce5012b4c102e6fe2437"
+  },
+  "hibrid-app/tsconfig.json": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837537,
+    "ast_hash": "e84e5c7fe88e3c5a4d54f55a816d42c1",
+    "semantic_hash": "e84e5c7fe88e3c5a4d54f55a816d42c1"
+  },
+  "hibrid-app/vite.config.ts": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.837538,
+    "ast_hash": "d67e8217e5f31b87c276b6357c9aedcf",
+    "semantic_hash": "d67e8217e5f31b87c276b6357c9aedcf"
+  },
+  "hibrid-engine/.claude/settings.json": {
+    "mtime": 1786108646.0,
+    "seen": 1787558073.837539,
+    "ast_hash": "8da0f900cda1d5acaded8a7fa21d07e0",
+    "semantic_hash": "8da0f900cda1d5acaded8a7fa21d07e0"
+  },
+  "hibrid-engine/pyproject.toml": {
+    "mtime": 1786186391.0,
+    "seen": 1787558073.837539,
+    "ast_hash": "282275db56137c60b92ea0196561ea7f",
+    "semantic_hash": "282275db56137c60b92ea0196561ea7f"
+  },
+  "hibrid-engine/src/hibrid/__init__.py": {
+    "mtime": 1786090142.0,
+    "seen": 1787558073.8375401,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "hibrid-engine/src/hibrid/api/__init__.py": {
+    "mtime": 1786186413.0,
+    "seen": 1787558073.837541,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "hibrid-engine/src/hibrid/api/__main__.py": {
+    "mtime": 1786186476.0,
+    "seen": 1787558073.837541,
+    "ast_hash": "d599e586ee04c2f47a5256a68acdad00",
+    "semantic_hash": "d599e586ee04c2f47a5256a68acdad00"
+  },
+  "hibrid-engine/src/hibrid/api/app.py": {
+    "mtime": 1786949761.2386138,
+    "seen": 1787558073.8375418,
+    "ast_hash": "17a92665c0d71c7cda59d53a87d6089a",
+    "semantic_hash": "17a92665c0d71c7cda59d53a87d6089a"
+  },
+  "hibrid-engine/src/hibrid/api/schemas.py": {
+    "mtime": 1786949754.7976804,
+    "seen": 1787558073.837543,
+    "ast_hash": "58574b88b8cefb4f9e12bfde6cd647d6",
+    "semantic_hash": "58574b88b8cefb4f9e12bfde6cd647d6"
+  },
+  "hibrid-engine/src/hibrid/cli.py": {
+    "mtime": 1786295259.0,
+    "seen": 1787558073.837543,
+    "ast_hash": "e5ef263b63c0658e6515d175a66f8eed",
+    "semantic_hash": "e5ef263b63c0658e6515d175a66f8eed"
+  },
+  "hibrid-engine/src/hibrid/exercise_db.py": {
+    "mtime": 1786266335.0,
+    "seen": 1787558073.837544,
+    "ast_hash": "7c30e0f42be3667b461b779989ccce42",
+    "semantic_hash": "7c30e0f42be3667b461b779989ccce42"
+  },
+  "hibrid-engine/src/hibrid/load_management.py": {
+    "mtime": 1786343423.0,
+    "seen": 1787558073.837544,
+    "ast_hash": "be7571ba8aab4445f395bafa6b7a7c7c",
+    "semantic_hash": "be7571ba8aab4445f395bafa6b7a7c7c"
+  },
+  "hibrid-engine/src/hibrid/models.py": {
+    "mtime": 1786268335.0,
+    "seen": 1787558073.837545,
+    "ast_hash": "a271decbd781bc59c36c09a643165e5d",
+    "semantic_hash": "a271decbd781bc59c36c09a643165e5d"
+  },
+  "hibrid-engine/src/hibrid/objective_strategy.py": {
+    "mtime": 1786949565.5726473,
+    "seen": 1787558073.8375459,
+    "ast_hash": "7c127976491de6a4fd20097f093f3cb6",
+    "semantic_hash": "7c127976491de6a4fd20097f093f3cb6"
+  },
+  "hibrid-engine/src/hibrid/progression.py": {
+    "mtime": 1786297316.0,
+    "seen": 1787558073.8375459,
+    "ast_hash": "a8bfde197220085f3d27ae4e49674500",
+    "semantic_hash": "a8bfde197220085f3d27ae4e49674500"
+  },
+  "hibrid-engine/src/hibrid/readiness.py": {
+    "mtime": 1786296339.0,
+    "seen": 1787558073.837547,
+    "ast_hash": "a31d85c6044a79b54ac5a207875548c7",
+    "semantic_hash": "a31d85c6044a79b54ac5a207875548c7"
+  },
+  "hibrid-engine/src/hibrid/routine_io.py": {
+    "mtime": 1786185319.0,
+    "seen": 1787558073.837548,
+    "ast_hash": "151f63479c166ffb8d58f39f983d9839",
+    "semantic_hash": "151f63479c166ffb8d58f39f983d9839"
+  },
+  "hibrid-engine/src/hibrid/session_generation.py": {
+    "mtime": 1786529869.0,
+    "seen": 1787558073.837549,
+    "ast_hash": "ad47d18df8867ea71118b633da84be0d",
+    "semantic_hash": "ad47d18df8867ea71118b633da84be0d"
+  },
+  "hibrid-engine/src/hibrid/training_memory.py": {
+    "mtime": 1786343441.0,
+    "seen": 1787558073.837549,
+    "ast_hash": "68af717faa0d921a6d558e5ad68cfb36",
+    "semantic_hash": "68af717faa0d921a6d558e5ad68cfb36"
+  },
+  "hibrid-engine/src/hibrid/user/__init__.py": {
+    "mtime": 1786093942.0,
+    "seen": 1787558073.8375502,
+    "ast_hash": "2a0a6c285c38f5fed1943564cd1b22ed",
+    "semantic_hash": "2a0a6c285c38f5fed1943564cd1b22ed"
+  },
+  "hibrid-engine/src/hibrid/user/biometrics.py": {
+    "mtime": 1786093777.0,
+    "seen": 1787558073.837551,
+    "ast_hash": "874c884392514ee637b9b53cabb3f668",
+    "semantic_hash": "874c884392514ee637b9b53cabb3f668"
+  },
+  "hibrid-engine/src/hibrid/user/enums.py": {
+    "mtime": 1786093545.0,
+    "seen": 1787558073.837551,
+    "ast_hash": "986a467d72d785a541144f35723d5395",
+    "semantic_hash": "986a467d72d785a541144f35723d5395"
+  },
+  "hibrid-engine/src/hibrid/user/health.py": {
+    "mtime": 1786093727.0,
+    "seen": 1787558073.837552,
+    "ast_hash": "1775923deb23b5ddd31b5a2de2b15842",
+    "semantic_hash": "1775923deb23b5ddd31b5a2de2b15842"
+  },
+  "hibrid-engine/src/hibrid/user/history.py": {
+    "mtime": 1786343449.0,
+    "seen": 1787558073.8375528,
+    "ast_hash": "ac1be58b2e2763232a3f670de4a396b4",
+    "semantic_hash": "ac1be58b2e2763232a3f670de4a396b4"
+  },
+  "hibrid-engine/src/hibrid/user/objectives.py": {
+    "mtime": 1786093640.0,
+    "seen": 1787558073.8375528,
+    "ast_hash": "7007f4fc5958087c63488eb9341e869f",
+    "semantic_hash": "7007f4fc5958087c63488eb9341e869f"
+  },
+  "hibrid-engine/src/hibrid/user/preferences.py": {
+    "mtime": 1786093685.0,
+    "seen": 1787558073.837554,
+    "ast_hash": "4cfd1701c0c7508e54bb0faf3fcdbc61",
+    "semantic_hash": "4cfd1701c0c7508e54bb0faf3fcdbc61"
+  },
+  "hibrid-engine/src/hibrid/user/profile.py": {
+    "mtime": 1786093568.0,
+    "seen": 1787558073.837554,
+    "ast_hash": "4a86aaa14af4aacad9b1ea6877c230b6",
+    "semantic_hash": "4a86aaa14af4aacad9b1ea6877c230b6"
+  },
+  "hibrid-engine/src/hibrid/user/types.py": {
+    "mtime": 1786093493.0,
+    "seen": 1787558073.837555,
+    "ast_hash": "e3dd14d05e551a4aab3e01528f95528a",
+    "semantic_hash": "e3dd14d05e551a4aab3e01528f95528a"
+  },
+  "hibrid-engine/src/hibrid/user/user.py": {
+    "mtime": 1786093899.0,
+    "seen": 1787558073.837556,
+    "ast_hash": "550d3f3699a3d0cda8e9eed3ba212999",
+    "semantic_hash": "550d3f3699a3d0cda8e9eed3ba212999"
+  },
+  "hibrid-engine/src/hibrid/variation.py": {
+    "mtime": 1786950461.0614328,
+    "seen": 1787558073.837556,
+    "ast_hash": "b638a37a8fe905691aacbbb0ddb3d043",
+    "semantic_hash": "b638a37a8fe905691aacbbb0ddb3d043"
+  },
+  "hibrid-engine/src/hibrid/variation_context.py": {
+    "mtime": 1786528485.0,
+    "seen": 1787558073.837557,
+    "ast_hash": "67d79599237ceaa90d90ca10278c504f",
+    "semantic_hash": "67d79599237ceaa90d90ca10278c504f"
+  },
+  "hibrid-engine/tests/test_api.py": {
+    "mtime": 1786949785.1550863,
+    "seen": 1787558073.837558,
+    "ast_hash": "354f0a1867d9c5fb16509e83ab0f8d21",
+    "semantic_hash": "354f0a1867d9c5fb16509e83ab0f8d21"
+  },
+  "hibrid-engine/tests/test_exercise_db.py": {
+    "mtime": 1786179411.0,
+    "seen": 1787558073.837558,
+    "ast_hash": "6f7eece07ef2984427a873b6f0809658",
+    "semantic_hash": "6f7eece07ef2984427a873b6f0809658"
+  },
+  "hibrid-engine/tests/test_importer_patterns.py": {
+    "mtime": 1786268540.0,
+    "seen": 1787558073.837559,
+    "ast_hash": "d28df641ff314026a59d7db9aa3f42e7",
+    "semantic_hash": "d28df641ff314026a59d7db9aa3f42e7"
+  },
+  "hibrid-engine/tests/test_load_management.py": {
+    "mtime": 1786344565.0,
+    "seen": 1787558073.8375602,
+    "ast_hash": "c58a7fd9439972e1ed04fcd40d86c384",
+    "semantic_hash": "c58a7fd9439972e1ed04fcd40d86c384"
+  },
+  "hibrid-engine/tests/test_objective_strategy.py": {
+    "mtime": 1786949636.9947307,
+    "seen": 1787558073.8375602,
+    "ast_hash": "652fb5ff9723306f15eff40bd946dc92",
+    "semantic_hash": "652fb5ff9723306f15eff40bd946dc92"
+  },
+  "hibrid-engine/tests/test_progression.py": {
+    "mtime": 1786297694.0,
+    "seen": 1787558073.8375611,
+    "ast_hash": "90317cb9fcf6c3e12d81ef7294bd3191",
+    "semantic_hash": "90317cb9fcf6c3e12d81ef7294bd3191"
+  },
+  "hibrid-engine/tests/test_readiness.py": {
+    "mtime": 1786269733.0,
+    "seen": 1787558073.837562,
+    "ast_hash": "6f3c3d9633ac433442769ee170fe9341",
+    "semantic_hash": "6f3c3d9633ac433442769ee170fe9341"
+  },
+  "hibrid-engine/tests/test_routine_io.py": {
+    "mtime": 1786185376.0,
+    "seen": 1787558073.837562,
+    "ast_hash": "a5d8c118537c3659751d24714aaf21a8",
+    "semantic_hash": "a5d8c118537c3659751d24714aaf21a8"
+  },
+  "hibrid-engine/tests/test_session_generation.py": {
+    "mtime": 1786530043.0,
+    "seen": 1787558073.8375628,
+    "ast_hash": "23123cdd6c7026e901d5021ca24be6a4",
+    "semantic_hash": "23123cdd6c7026e901d5021ca24be6a4"
+  },
+  "hibrid-engine/tests/test_training_memory.py": {
+    "mtime": 1786296512.0,
+    "seen": 1787558073.8375628,
+    "ast_hash": "fad0001a7402bda43e987aed33b87ca0",
+    "semantic_hash": "fad0001a7402bda43e987aed33b87ca0"
+  },
+  "hibrid-engine/tests/test_user_schema.py": {
+    "mtime": 1786094366.0,
+    "seen": 1787558073.837564,
+    "ast_hash": "ca9f01ab63c438e9dda82455058ae55c",
+    "semantic_hash": "ca9f01ab63c438e9dda82455058ae55c"
+  },
+  "hibrid-engine/tests/test_variation.py": {
+    "mtime": 1786950471.5549304,
+    "seen": 1787558073.837565,
+    "ast_hash": "2b273dd094e589f8947a29f71e0d6d43",
+    "semantic_hash": "2b273dd094e589f8947a29f71e0d6d43"
+  },
+  "hibrid-engine/tests/test_variation_context.py": {
+    "mtime": 1786949701.0214214,
+    "seen": 1787558073.837565,
+    "ast_hash": "209495f09d3b21d9baecf4f256568704",
+    "semantic_hash": "209495f09d3b21d9baecf4f256568704"
+  },
+  "hibrid-engine/tests/test_volume.py": {
+    "mtime": 1786185359.0,
+    "seen": 1787558073.837566,
+    "ast_hash": "af4849839476ef9721432fa8eb6d6ecc",
+    "semantic_hash": "af4849839476ef9721432fa8eb6d6ecc"
+  },
+  "hibrid-engine/tools/build_exercise_library.py": {
+    "mtime": 1786179243.0,
+    "seen": 1787558073.837567,
+    "ast_hash": "b237f08fb5cd5a916010a8a30c3ebe84",
+    "semantic_hash": "b237f08fb5cd5a916010a8a30c3ebe84"
+  },
+  "hibrid-engine/tools/import_exercise_dataset.py": {
+    "mtime": 1786268413.0,
+    "seen": 1787558073.837567,
+    "ast_hash": "3ffbcc0baf43ce709f56d33596b3408e",
+    "semantic_hash": "3ffbcc0baf43ce709f56d33596b3408e"
+  },
+  "hibrid-engine/tools/import_functional_dataset.py": {
+    "mtime": 1786268482.0,
+    "seen": 1787558073.837568,
+    "ast_hash": "cac9e71d09da576961ac9337998555b1",
+    "semantic_hash": "cac9e71d09da576961ac9337998555b1"
+  },
+  "run.sh": {
+    "mtime": 1787556275.7927005,
+    "seen": 1787558073.837569,
+    "ast_hash": "c5ed902af674167f334f5c34e7c7271a",
+    "semantic_hash": "c5ed902af674167f334f5c34e7c7271a"
+  },
+  "README.md": {
+    "mtime": 1787556965.3864374,
+    "seen": 1787558073.837569,
+    "ast_hash": "65d87a98e986e9a908473c467f629033",
+    "semantic_hash": "65d87a98e986e9a908473c467f629033"
+  },
+  "hibrid-app/AGENTS.md": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.83757,
+    "ast_hash": "3da3c4cd15b686e79a248c25735d6aaf",
+    "semantic_hash": "3da3c4cd15b686e79a248c25735d6aaf"
+  },
+  "hibrid-app/README.md": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375711,
+    "ast_hash": "15ccc2c959c0bff2136261ce044c418f",
+    "semantic_hash": "15ccc2c959c0bff2136261ce044c418f"
+  },
+  "hibrid-app/src/routes/README.md": {
+    "mtime": 312764400.0,
+    "seen": 1787558073.8375711,
+    "ast_hash": "b3a2f259b66fd1a11f54b6d5ac83bf57",
+    "semantic_hash": "b3a2f259b66fd1a11f54b6d5ac83bf57"
+  },
+  "hibrid-engine/.claude/skills/simplicity-gate/SKILL.md": {
+    "mtime": 1786090749.0,
+    "seen": 1787558073.837572,
+    "ast_hash": "e6c12a14b21e597f2a50e9d06aaa7afd",
+    "semantic_hash": "e6c12a14b21e597f2a50e9d06aaa7afd"
+  },
+  "hibrid-engine/CLAUDE.md": {
+    "mtime": 1786950019.2551937,
+    "seen": 1787558073.837573,
+    "ast_hash": "b06730cc8b8b8bcb08178be2f5117c25",
+    "semantic_hash": "b06730cc8b8b8bcb08178be2f5117c25"
+  },
+  "hibrid-engine/HANDOFF.md": {
+    "mtime": 1786949973.9874685,
+    "seen": 1787558073.837573,
+    "ast_hash": "aa16591095bd493dcd818651c91cbe9b",
+    "semantic_hash": "aa16591095bd493dcd818651c91cbe9b"
+  },
+  "hibrid-engine/docs/api-v1-draft.md": {
+    "mtime": 1786529407.0,
+    "seen": 1787558073.837574,
+    "ast_hash": "cd2b4d9858a7890ddbb313e757859eed",
+    "semantic_hash": "cd2b4d9858a7890ddbb313e757859eed"
+  },
+  "hibrid-engine/docs/decisions.md": {
+    "mtime": 1786950178.9192894,
+    "seen": 1787558073.837574,
+    "ast_hash": "e775295da7a2d107143a66bb7f62846b",
+    "semantic_hash": "e775295da7a2d107143a66bb7f62846b"
+  },
+  "hibrid-engine/docs/exercise-library.md": {
+    "mtime": 1786519742.0,
+    "seen": 1787558073.837575,
+    "ast_hash": "a9380907b3b786eb86b14e6902401686",
+    "semantic_hash": "a9380907b3b786eb86b14e6902401686"
+  },
+  "hibrid-engine/docs/known-gaps.md": {
+    "mtime": 1786950152.341518,
+    "seen": 1787558073.837576,
+    "ast_hash": "a0f196262278ff0a3bb482b0907b215b",
+    "semantic_hash": "a0f196262278ff0a3bb482b0907b215b"
+  },
+  "hibrid-engine/docs/roadmap.md": {
+    "mtime": 1786950105.4914677,
+    "seen": 1787558073.837576,
+    "ast_hash": "4d2daaea3e48e809745f7df3f07cc911",
+    "semantic_hash": "4d2daaea3e48e809745f7df3f07cc911"
+  },
+  "hibrid-engine/docs/user-schema.md": {
+    "mtime": 1786521318.0,
+    "seen": 1787558073.8375769,
+    "ast_hash": "7747e5cad4aa1a3069c2738db60c31fe",
+    "semantic_hash": "7747e5cad4aa1a3069c2738db60c31fe"
+  }
+}

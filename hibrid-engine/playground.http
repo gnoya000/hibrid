@@ -1,0 +1,2893 @@
+# hibrid — API scenario suite
+#
+# For the VS Code REST Client extension (humao.rest-client): click "Send Request"
+# above any block below.
+#
+#   source .venv/bin/activate
+#   pip install -e ".[dev,api]"
+#   python -m hibrid.api          # serves on :8000, Swagger UI at /docs
+#
+# Every "observed" note below was measured against the engine, seeds included.
+# They are documentation of real behaviour, not assertions -- if one stops
+# matching after an engine change, that is the suite doing its job.
+#
+#   1-6  the endpoints and the engine's knobs
+#   7    where the algorithm's actual limits show up -- read before trusting output
+#   8    input handling
+#   9    user context: health, equipment and preferences
+#   10   training memory: what the user actually did
+#   11   progression: variation becomes programming
+#   12   load management: the block, not the session
+#   13   session generation from scratch, and re-rolling one block
+
+@host = http://localhost:8000
+@ppl = example_ppl
+@mixed = example_mixed
+
+
+###############################################################################
+# 1. DISCOVERY — what is there
+###############################################################################
+
+### Liveness.
+GET {{host}}/health
+
+### Every implemented objective strategy, with its real parameters.
+# Observed: 3 strategies. strength rep_range [1,6] rest [120,300] tempo 2.5s;
+# hypertrophy [8,15] rest [60,120] tempo 3.0s; muscular_endurance [15,25]
+# rest [20,60] tempo 2.0s. The other 10 TrainingObjective values (cardiovascular
+# endurance, flexibility, agility, ...) have no strategy yet -- see section 8.
+GET {{host}}/objectives
+
+### Routines available on disk (routines/*.yaml).
+# Observed: example_ppl (5 entries), example_mixed (3 entries).
+GET {{host}}/routines
+
+### One routine, fully resolved: exercise names, per-entry volume and time.
+GET {{host}}/routines/{{ppl}}
+
+### The mixed-modality routine — three different dose shapes in one file.
+# This is the M1 milestone fixture: barbell squat + 1km run + 60s stretch.
+GET {{host}}/routines/{{mixed}}
+
+### Unknown routine name.
+# Observed: 404.
+GET {{host}}/routines/no-such-routine
+
+
+###############################################################################
+# 2. OBJECTIVE COMPARISON — the core of the playground
+#
+# Same routine, same seed, substitution off, so the ONLY variable is the
+# objective. Run all four and diff the `describe` fields.
+#
+# Original:            4x8@80 r120 | 4x8@45 r90 | 3x10@27.5 r90 | 3x12@10 r60 | 3x12@25 r60
+# strength:            (unchanged) | (unchanged) | (unchanged) | (unchanged) | (unchanged)
+# hypertrophy:         5x10@50 r85 | 3x9@52.5 r120 | 3x13@20 r80 | 3x10@12.5 r65 | 3x13@22.5 r60
+# muscular_endurance:  (unchanged) | (unchanged) | (unchanged) | 3x16@7.5 r60 | 4x15@15 r40
+#
+# The "(unchanged)" entries are not a bug and not randomness -- see section 7.
+#
+# STRENGTH NOW HOLDS EVERY ENTRY, and that is the correct answer rather than a
+# regression. This is an 8-rep hypertrophy routine: strength preserves *load*
+# rather than volume, so it will not re-solve 4x8@80 into a heavier low-rep
+# scheme, and the only volume-equivalent schemes at 80 kg are blocked by the
+# 120s rest floor. Each entry reports `unvaried_holding_intensity` and says so.
+# Every one of them previously came back as a load the lifter could not lift --
+# see section 7(d), which used to document that as a live limitation.
+#
+# To see strength actually vary, give it a routine already in its rep range
+# (section 7(d) below), or generate one with POST /sessions/generate.
+###############################################################################
+
+### Baseline: what we are varying.
+GET {{host}}/routines/{{ppl}}
+
+### STRENGTH — low reps, heavy, long rest.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "strength",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### HYPERTROPHY — moderate reps and rest. This is the default objective.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "hypertrophy",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### MUSCULAR ENDURANCE — high reps, light, short rest.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "muscular_endurance",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### Objective omitted entirely — defaults to hypertrophy.
+# Observed: byte-identical to the hypertrophy request above.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+
+###############################################################################
+# 3. DETERMINISM AND SEEDS
+###############################################################################
+
+### Send this twice — the varied ENTRIES must be identical.
+# Observed: identical. Note `routine_id` differs every call: a variation is a
+# new Routine and gets a fresh UUID (M1), so compare entries, not the whole body.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "hypertrophy",
+  "seed": 7
+}
+
+### Seed 1, substitution forced on.
+# Observed: Trap Bar Bottoms Up Bench Press / Kettlebell seated two arm military
+# press / Dumbbell Crush Grip Floor Press / Double Dumbbell Tall Kneeling Lateral
+# Raise / Single Arm Dumbbell Incline Bench Skull Crusher
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 1,
+  "substitution_prob": 1.0
+}
+
+### Seed 2 — same request, different draw.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 2,
+  "substitution_prob": 1.0
+}
+
+### Seed 3.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 1.0
+}
+
+### No seed at all — a different result every send.
+# The only non-reproducible request in this file. Send it repeatedly to get a
+# feel for the spread of substitutions the library actually offers.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "substitution_prob": 1.0
+}
+
+
+###############################################################################
+# 4. SUBSTITUTION BEHAVIOUR
+###############################################################################
+
+### substitution_prob = 0 — schemes change, exercises never do.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### substitution_prob = 0.5 — roughly half the entries swap.
+# Observed (seed 3): entries 1, 3 and 4 swapped; 2 and 5 kept their exercise.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.5
+}
+
+### substitution_prob = 1.0 — every entry swaps.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 1.0
+}
+
+### allow_equipment_change = false — substitutes must keep the same equipment.
+# Observed (seed 5): barbell bench -> "Barbell Incline Push Up" (still barbell),
+# dumbbell press -> a dumbbell press, cable pushdown -> a cable extension.
+# Compare against the next request, which is the same seed unrestricted.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 50,
+  "substitution_prob": 1.0,
+  "allow_equipment_change": false
+}
+
+### Same seed, equipment change allowed — barbell bench can become a kettlebell
+### floor press, the cable pushdown a dumbbell skull crusher.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 5,
+  "substitution_prob": 1.0,
+  "allow_equipment_change": true
+}
+
+### The bodyweight boundary: a loaded exercise is never swapped for a bodyweight
+### one, and vice versa, because the engine solves a weight from volume and an
+### "implied load" for a push-up is meaningless.
+# Observed: chest dip (bodyweight) -> "Clap push up" (also bodyweight).
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bodyweight only",
+    "entries": [
+      { "exercise_id": "chest-dip", "dose": { "kind": "reps", "sets": 4, "reps": 10, "weight": 0 } }
+    ]
+  },
+  "seed": 1,
+  "substitution_prob": 0.5
+}
+
+
+###############################################################################
+# 5. THE ENGINE'S TUNING KNOBS
+###############################################################################
+
+### volume_tolerance = 0 — only schemes preserving volume EXACTLY are accepted.
+# Observed: 1 of 5 entries unchanged; the rest found exact rearrangements
+# (e.g. 4x8@45 -> 4x9@40, both 1440). Tighter is not always less variation.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0,
+  "volume_tolerance": 0.0
+}
+
+### volume_tolerance = 0.075 (the default).
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0,
+  "volume_tolerance": 0.075
+}
+
+### volume_tolerance = 0.5 — very loose.
+# Observed: identical to the default here. The search takes the FIRST candidate
+# inside tolerance from a shuffled list, so loosening past the point where a
+# candidate already qualifies changes nothing.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0,
+  "volume_tolerance": 0.5
+}
+
+### time_tolerance = 0 — session length must be preserved exactly.
+# Observed: 4 of 5 entries unchanged. Time is usually the binding constraint,
+# not volume.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0,
+  "time_tolerance": 0.0
+}
+
+### time_tolerance = 0.25, strength — loosening time unlocks entries that the
+### strength rest floor (120s minimum) had blocked.
+# Observed: entry 1 goes 4x8@80 -> 5x6@80, impossible at the default 0.10. Note
+# the load is unchanged: strength preserves intensity, so loosening the time
+# tolerance buys a different scheme at the same bar, never a heavier one.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "strength",
+  "seed": 3,
+  "substitution_prob": 0.0,
+  "time_tolerance": 0.25
+}
+
+### weight_increment = 1.0 — fine-grained plates.
+# Observed: 5x10@51, 3x9@53, 3x13@21 ... precise but not gym-realistic.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0,
+  "weight_increment": 1.0
+}
+
+### weight_increment = 20.0 — very coarse. Fewer schemes can hit the volume
+### target, so more entries stay unchanged.
+# Observed: 1 of 5 entries unchanged.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 3,
+  "substitution_prob": 0.0,
+  "weight_increment": 20.0
+}
+
+
+###############################################################################
+# 6. DOSE SHAPES AND MODALITY GUARDS
+###############################################################################
+
+### All four dose shapes in one routine.
+# Observed: only the barbell squat (RepsDose, resistance) is varied. The run,
+# the stretch and the rounds block pass through byte-identical under EVERY
+# objective -- V1 has no search for distance/duration/rounds doses yet.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "All four dose shapes",
+    "entries": [
+      { "exercise_id": "barbell-front-squat", "dose": { "kind": "reps", "sets": 4, "reps": 6, "weight": 90 }, "rest_seconds": 120 },
+      { "exercise_id": "run", "dose": { "kind": "distance", "distance_m": 1000, "duration_seconds": 300 }, "rest_seconds": 60 },
+      { "exercise_id": "lying-side-quads-stretch", "dose": { "kind": "duration", "sets": 1, "duration_seconds": 60 }, "rest_seconds": 0 },
+      { "exercise_id": "burpee", "dose": { "kind": "rounds", "rounds": 5, "round_seconds": 45 }, "rest_seconds": 15 }
+    ]
+  },
+  "objective": "hypertrophy",
+  "seed": 1,
+  "substitution_prob": 0.0
+}
+
+### The same routine under strength — confirm the three non-resistance entries
+### are still untouched.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "All four dose shapes",
+    "entries": [
+      { "exercise_id": "barbell-front-squat", "dose": { "kind": "reps", "sets": 4, "reps": 6, "weight": 90 }, "rest_seconds": 120 },
+      { "exercise_id": "run", "dose": { "kind": "distance", "distance_m": 1000, "duration_seconds": 300 }, "rest_seconds": 60 },
+      { "exercise_id": "lying-side-quads-stretch", "dose": { "kind": "duration", "sets": 1, "duration_seconds": 60 }, "rest_seconds": 0 },
+      { "exercise_id": "burpee", "dose": { "kind": "rounds", "rounds": 5, "round_seconds": 45 }, "rest_seconds": 15 }
+    ]
+  },
+  "objective": "strength",
+  "seed": 1,
+  "substitution_prob": 0.0
+}
+
+### The modality guard: a CARDIO exercise carrying a RepsDose, under a
+### RESISTANCE objective. The dose shape is variable but the exercise's
+### modality does not match the strategy's preferred_modality.
+# Observed: unchanged. This is the `preferred_modality` check in vary_entry.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Cardio exercise with a rep dose",
+    "entries": [
+      { "exercise_id": "burpee", "dose": { "kind": "reps", "sets": 4, "reps": 10, "weight": 0 } }
+    ]
+  },
+  "objective": "hypertrophy",
+  "seed": 1,
+  "substitution_prob": 0.0
+}
+
+### Substitution still applies to entries whose dose cannot be varied.
+# Observed: jump-rope -> "Walk elliptical cross trainer" (cardio stays cardio),
+# while the rounds dose passes through unchanged. Swapping the exercise and
+# varying the dose are independent steps.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Cardio, substitution on",
+    "entries": [
+      { "exercise_id": "jump-rope", "dose": { "kind": "rounds", "rounds": 3, "round_seconds": 60 } }
+    ]
+  },
+  "seed": 1,
+  "substitution_prob": 1.0
+}
+
+### A named mixed routine end to end.
+# Observed (strength, seed 2): all three entries unchanged. The squat holds at
+# 4x6@90 (`unvaried_holding_intensity` -- strength will not re-solve it to
+# 4x4@135 as it once did); run and stretch are untouched as non-reps doses.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_mixed",
+  "objective": "strength",
+  "seed": 2,
+  "substitution_prob": 0.0
+}
+
+
+###############################################################################
+# 7. WHAT THE PLAYGROUND ACTUALLY REVEALS
+#
+# Four real behaviours worth understanding before trusting any output.
+#
+# Every varied entry now carries `dose_outcome`, `dose_outcome_reason` and
+# `exercise_substituted`, so the cases below are self-describing in the
+# response rather than something you have to infer by diffing. The outcomes:
+#
+#   varied                                 the scheme moved
+#   unvaried_not_reps_dose                 duration/distance/rounds dose --
+#                                          no search exists for these yet
+#   unvaried_modality_mismatch             exercise is not in the modality
+#                                          this objective prescribes in
+#   unvaried_no_scheme_in_objective_range  search stays near the current
+#                                          scheme; nothing nearby is in range
+#   unvaried_no_candidate_within_tolerance schemes existed, none preserved
+#                                          both volume and time
+#
+# `exercise_substituted` is independent of all of these: an entry can be
+# swapped for a different exercise while its dose passes through untouched.
+###############################################################################
+
+### (a) THE SEARCH RADIUS CAPS HOW FAR AN OBJECTIVE CAN PULL A SCHEME.
+#
+# candidate_rep_schemes searches +/-2 sets and +/-4 reps around the CURRENT
+# scheme, then clips to the objective's range. An entry at 8 reps can therefore
+# only reach 12 -- it can never enter muscular endurance's 15-25 window, so it
+# is returned unchanged rather than moved partway.
+#
+# Observed below: entries starting at 8 and 10 reps report
+# `unvaried_no_scheme_in_objective_range`; only the two 12-rep entries (which
+# can reach 15-16) come back `varied`. This staying-near-the-current-scheme
+# behaviour is deliberate -- a user's objective is broadly fixed, and what
+# matters is micro-varying their routine, not jumping it across rep ranges.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "muscular_endurance",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### (b) THE SAME ROUTINE, PRE-MOVED INTO RANGE, VARIES FREELY.
+#
+# Identical exercises and objective as (a), but starting at 15 reps instead of
+# 8. Now every entry has candidates. This isolates the radius as the cause.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Already in the endurance range",
+    "entries": [
+      { "exercise_id": "barbell-bench-press", "dose": { "kind": "reps", "sets": 3, "reps": 15, "weight": 45 }, "rest_seconds": 45 },
+      { "exercise_id": "cable-pushdown", "dose": { "kind": "reps", "sets": 3, "reps": 18, "weight": 15 }, "rest_seconds": 40 }
+    ]
+  },
+  "objective": "muscular_endurance",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### (c) OBJECTIVE CONSTRAINTS CAN CONTRADICT TIME PRESERVATION.
+#
+# Strength wants >=120s rest; the entry below is prescribed at 60s. Holding
+# entry time constant while raising rest to the floor overshoots the time
+# tolerance, so the candidate is rejected and the entry is returned unchanged.
+# Raise time_tolerance to 0.25 (section 5) and it moves.
+#
+# Observed: unchanged at the default 0.10, reported as
+# `unvaried_no_candidate_within_tolerance` -- schemes existed, none fit.
+# Contrast with (a), where no scheme was ever generated.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Short rest meets strength's rest floor",
+    "entries": [
+      { "exercise_id": "cable-pushdown", "dose": { "kind": "reps", "sets": 3, "reps": 12, "weight": 25 }, "rest_seconds": 60 }
+    ]
+  },
+  "objective": "strength",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### (d) VOLUME EQUIVALENCE IS NOT LOAD EQUIVALENCE -- **FIXED.** Read anyway.
+#
+# This request used to be the sharpest limitation in the playground. Holding
+# sets x reps x weight constant meant halving the reps doubled the load, so the
+# 4x8@80 bench press below came back as 4x4@160 -- arithmetically equal volume,
+# physiologically impossible for the same lifter. The full candidate set spanned
+# 6x6@45 to 3x1@532.5, all of them reported as a successful variation.
+#
+# Fixed by making the invariant the objective's choice. StrengthStrategy now
+# declares `Invariant.INTENSITY`, so the load is pinned at the reference and the
+# scheme moves around it instead of the other way round.
+#
+# Observed now: 4x8@80 -> 4x8@80, `unvaried_holding_intensity`. Strength will not
+# invent a heavier scheme, and 8 reps is outside its 1-6 range so it has nothing
+# in-range to move to either. The honest answer is to leave it alone and say why.
+#
+# Try it with an in-range strength routine to see it vary properly: a 4x4@100
+# entry returns 3x5@100 or 5x3@100 -- same bar, different scheme.
+#
+# The residual limit worth knowing: nothing bounds a *generated* candidate load
+# against the user's estimated 1RM. Under LOAD_VOLUME (hypertrophy, endurance)
+# the load is still solved from volume and can still drift away from what the
+# lifter can handle, which is why heavy hypertrophy output is still a scheme
+# suggestion rather than a prescription.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Volume-equivalent, load-absurd",
+    "entries": [
+      { "exercise_id": "barbell-bench-press", "dose": { "kind": "reps", "sets": 4, "reps": 8, "weight": 80 }, "rest_seconds": 120 }
+    ]
+  },
+  "objective": "strength",
+  "seed": 3,
+  "substitution_prob": 0.0
+}
+
+### (e) The invariant that DOES hold: routine totals stay within tolerance.
+# Observed (seed 9): volume 6085 -> 6070 (0.2%), time 1968 -> 1988 (1.0%).
+# Check `total_volume` and `total_time_seconds` on both objects.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "seed": 9
+}
+
+
+###############################################################################
+# 8. INPUT HANDLING
+###############################################################################
+
+### Objective with no strategy implemented yet.
+# Observed: 400 with the available list. Ten of the thirteen TrainingObjective
+# values land here -- they need a duration/distance search that does not exist.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "cardiovascular_endurance"
+}
+
+### Objective that is not a TrainingObjective at all.
+# Observed: 422, caught by the enum before reaching the route.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objective": "not_a_real_objective"
+}
+
+### Both routine and routine_name — ambiguous.
+# Observed: 422 from VaryRequest's validator.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "routine": { "name": "x", "entries": [ { "exercise_id": "barbell-bench-press", "dose": { "kind": "reps", "sets": 3, "reps": 8, "weight": 80 } } ] }
+}
+
+### Neither routine nor routine_name.
+# Observed: 422.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "seed": 1
+}
+
+### Empty entries list.
+# Observed: 422, too_short at body.routine.entries.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": { "name": "Empty", "entries": [] }
+}
+
+### sets = 0.
+# Observed: 422, greater_than at body.routine.entries.0.dose.reps.sets.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Zero sets",
+    "entries": [ { "exercise_id": "barbell-bench-press", "dose": { "kind": "reps", "sets": 0, "reps": 8, "weight": 80 } } ]
+  }
+}
+
+### Negative weight.
+# Observed: 422, greater_than_equal.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Negative load",
+    "entries": [ { "exercise_id": "barbell-bench-press", "dose": { "kind": "reps", "sets": 3, "reps": 8, "weight": -5 } } ]
+  }
+}
+
+### Dose kind that does not exist.
+# Observed: 422, union_tag_invalid — the discriminated union names the four
+# legal kinds in the error.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bad dose kind",
+    "entries": [ { "exercise_id": "barbell-bench-press", "dose": { "kind": "tabata", "sets": 3 } } ]
+  }
+}
+
+### Dose with no `kind` discriminator.
+# Observed: 422, union_tag_not_found.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Missing discriminator",
+    "entries": [ { "exercise_id": "barbell-bench-press", "dose": { "sets": 3, "reps": 8, "weight": 80 } } ]
+  }
+}
+
+### Misspelled field — extra="forbid" means typos raise instead of being
+### silently ignored and defaulted.
+# Observed: 422, extra_forbidden at body.objectiv.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "objectiv": "strength"
+}
+
+### substitution_prob outside [0, 1].
+# Observed: 422, less_than_equal.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "substitution_prob": 1.5
+}
+
+### Negative tolerance.
+# Observed: 422, greater_than_equal.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "volume_tolerance": -0.1
+}
+
+### Unknown exercise_id.
+# Observed: 400 with the offending id. ExerciseDB raises a typed
+# UnknownExerciseError, which the app translates rather than letting a bare
+# KeyError escape as a 500 (which is what this did before the fix).
+#
+# See section 9 for the user-context cases, including the typo'd health field
+# that must be rejected rather than silently dropped.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Typo'd exercise id",
+    "entries": [ { "exercise_id": "no-such-exercise", "dose": { "kind": "reps", "sets": 3, "reps": 8, "weight": 80 } } ]
+  },
+  "substitution_prob": 0.0
+}
+
+
+###############################################################################
+# 9. USER CONTEXT
+#
+# The engine finally reads the V2 user schema. Context travels *with* the
+# request -- there is no user store, and whoever invokes a variation (the user,
+# or a coach with access to these data points) sends what the algorithm needs.
+#
+# `context` carries the real hibrid.user models, not a flattened copy, so
+# there is no second schema to drift and extra="forbid" rejects a typo instead
+# of quietly dropping a health constraint.
+#
+# Four tiers, which are NOT interchangeable:
+#   inviolable  context.health           never traded against an objective
+#   hard        equipment, excluded_*    violating one = cannot be executed
+#   soft        disliked_*, novelty      violating one = will not be enjoyed
+#   adaptive    recovery_history,        does not filter ANYTHING -- it scales
+#               wellness_history         how much load the permitted work carries
+#
+# Each varied entry reports an `exercise_outcome`:
+#   kept / substituted_for_variety / substituted_for_constraint /
+#   blocked_no_legal_alternative   (the last sets is_unsafe = true)
+#
+# The response also carries `context_filter`, so an over-restrictive context is
+# visible rather than masked as "the engine found nothing", and `readiness`,
+# so a routine that came back lighter says why. Section 9b covers that.
+#
+# NOT read, deliberately: MedicalConsideration's structured effect flags
+# (limits_overhead_work, limits_high_impact, ...), session-duration budgets,
+# and accumulated training load.
+###############################################################################
+
+### THE MILESTONE: active shoulder injury + dumbbells only.
+#
+# The routine prescribes exactly what this user must not receive. Both tiers
+# bind at once: the injury rules out the vertical_push pattern, the equipment
+# rules out the barbell.
+#
+# Observed (seed 4): Barbell Overhead Press -> Dumbbell cuban press v. 2,
+# exercise_outcome = substituted_for_constraint, is_unsafe = false.
+# context_filter: 682 of 4531 permitted.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Overhead day",
+    "entries": [
+      { "exercise_id": "barbell-overhead-press", "dose": { "kind": "reps", "sets": 4, "reps": 8, "weight": 50 } }
+    ]
+  },
+  "context": {
+    "health": {
+      "injuries": [
+        {
+          "body_region": "shoulder",
+          "status": "active",
+          "severity": 6,
+          "contraindicated_movement_patterns": ["vertical_push"]
+        }
+      ]
+    },
+    "preferences": {
+      "equipment_access": [
+        { "environment": "home_gym", "available_equipment": ["dumbbell"], "is_default": true }
+      ]
+    }
+  },
+  "seed": 4
+}
+
+### The control: same routine, no context. Nothing forces the swap.
+# Confirms the milestone above passes for the right reason.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Overhead day",
+    "entries": [
+      { "exercise_id": "barbell-overhead-press", "dose": { "kind": "reps", "sets": 4, "reps": 8, "weight": 50 } }
+    ]
+  },
+  "seed": 4,
+  "substitution_prob": 0.0
+}
+
+### Safety overrides the novelty dial: substitution_prob = 0 does NOT keep a
+### contraindicated exercise. Swapping for safety is not a stylistic choice.
+# Observed: still substituted_for_constraint.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench",
+    "entries": [
+      { "exercise_id": "barbell-bench-press", "dose": { "kind": "reps", "sets": 4, "reps": 8, "weight": 80 } }
+    ]
+  },
+  "context": {
+    "health": { "injuries": [ { "body_region": "shoulder", "status": "active",
+                 "contraindicated_exercise_ids": ["barbell-bench-press"] } ] }
+  },
+  "seed": 1,
+  "substitution_prob": 0.0
+}
+
+### When NOTHING legal exists, the engine says so instead of pretending.
+# A user with no equipment at all. Variation cannot drop an entry, so the
+# contraindicated exercise stays in the output -- flagged.
+# Observed: exercise_outcome = blocked_no_legal_alternative, is_unsafe = true.
+# Anything rendering this MUST check is_unsafe.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench",
+    "entries": [
+      { "exercise_id": "barbell-bench-press", "dose": { "kind": "reps", "sets": 4, "reps": 8, "weight": 80 } }
+    ]
+  },
+  "context": {
+    "preferences": { "equipment_access": [ { "environment": "bodyweight_only",
+                      "available_equipment": [], "is_default": true } ] }
+  },
+  "seed": 1
+}
+
+### max_load_kg bounds the solved weight.
+# A 20kg dumbbell rack cannot deliver a volume-preserving 60kg solution.
+# Observed: dose_outcome = unvaried_load_exceeds_equipment, which is reported
+# distinctly from an ordinary tolerance failure.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Heavy",
+    "entries": [
+      { "exercise_id": "dumbbell-bench-press", "dose": { "kind": "reps", "sets": 4, "reps": 8, "weight": 60 } }
+    ]
+  },
+  "context": {
+    "preferences": { "equipment_access": [ { "environment": "home_gym",
+                      "available_equipment": ["dumbbell"], "max_load_kg": 20, "is_default": true } ] }
+  },
+  "seed": 1,
+  "substitution_prob": 0.0
+}
+
+### Environment selects which inventory applies.
+# Access is per environment. Ask as "hotel_gym" when the user has no record
+# for it and you get NOTHING available -- not a silent fallback to their home
+# rack, which would prescribe equipment they do not have where they are.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": {
+    "preferences": {
+      "equipment_access": [
+        { "environment": "home_gym", "available_equipment": ["dumbbell"], "is_default": true },
+        { "environment": "commercial_gym", "available_equipment": ["barbell", "cable", "machine"] }
+      ]
+    },
+    "environment": "commercial_gym"
+  },
+  "seed": 2
+}
+
+### A dislike is a COST, not an exclusion.
+# Disliked exercises stay legal and can still be chosen if markedly more
+# suitable than the alternatives; they simply drop out of the tied top band.
+# Compare `exercise_name` against the same seed without the dislikes.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": {
+    "preferences": {
+      "disliked_exercise_ids": ["barbell-incline-bench-press", "dumbbell-incline-bench-press"]
+    }
+  },
+  "seed": 3,
+  "substitution_prob": 1.0
+}
+
+### excluded_exercise_ids IS a hard exclusion — the schema separates the two.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": {
+    "preferences": { "excluded_movement_patterns": ["horizontal_push"] }
+  },
+  "seed": 3
+}
+
+### novelty_preference drives substitution when substitution_prob is omitted.
+# The schema names this as the dial substitution_prob should derive from
+# rather than a hard-coded 0.3. Set 0.0 and nothing is swapped; set 1.0 and
+# everything is. An explicit substitution_prob still wins.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": { "preferences": { "novelty_preference": 0.0 } },
+  "seed": 1
+}
+
+### The same, at maximum novelty.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": { "preferences": { "novelty_preference": 1.0 } },
+  "seed": 1
+}
+
+### A resolved injury must stop constraining.
+# Prior injury stays in the schema (it predicts future injury) but must not
+# still block movements. Observed: no constraint applied.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": {
+    "health": {
+      "injuries": [
+        {
+          "body_region": "shoulder",
+          "status": "resolved",
+          "resolved_date": "2025-01-01",
+          "contraindicated_movement_patterns": ["vertical_push"]
+        }
+      ]
+    }
+  },
+  "seed": 1
+}
+
+### WHY THE CONTEXT IS IN THE BODY: a typo'd health field is rejected.
+# `contraindicated_movement_pattern` (singular) is not a field. In the body,
+# extra="forbid" turns that into a 422. Carried as a header it would have been
+# silently ignored -- meaning "this user has no contraindications" -- and they
+# would have been prescribed the movement their injury forbids.
+# Observed: 422, extra_forbidden.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": {
+    "health": {
+      "injuries": [
+        {
+          "body_region": "shoulder",
+          "status": "active",
+          "contraindicated_movement_pattern": ["vertical_push"]
+        }
+      ]
+    }
+  }
+}
+
+### An over-restrictive context is visible, not mysterious.
+# Check `context_filter` on any response above: permitted / total. A context
+# that permits a handful of exercises produces valid-looking output that never
+# changes -- which is indistinguishable from "the engine found no better
+# scheme" unless the count is reported.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": {
+    "preferences": { "equipment_access": [ { "environment": "home_gym",
+                      "available_equipment": ["kettlebell"], "is_default": true } ] }
+  },
+  "seed": 1
+}
+
+###############################################################################
+# 9b. STRAIN
+#
+# The adaptive tier. Unlike the other three it filters nothing -- it scales how
+# much load the permitted work carries. Sets, reps, exercises and session TIME
+# are held; only the volume target moves, because a session's length comes from
+# the user's calendar and not their HRV.
+#
+# `recovery_history` / `wellness_history` take the REAL hibrid.user models, and
+# you must send the whole trailing window rather than today's reading: the
+# verdict is a comparison against this user's own 28-day baseline, so a lone
+# reading has nothing to be suppressed against. `as_of` pins the moment being
+# planned for (defaults to now), which is what makes these requests repeatable.
+#
+# The response's `readiness` block carries state, load_multiplier and the raw
+# BaselineComparison behind it. Entries re-solved against a reduced target
+# report dose_outcome = varied_for_strain.
+#
+# states -> multiplier:  unknown 1.0 | normal 1.0 | suppressed 0.9 |
+#                        strongly_suppressed 0.75
+#
+# NOT read, deliberately: vendor readiness_score / strain_score (opaque
+# functions of the same HRV and heart-rate inputs -- counting them too would
+# double-weight one piece of physiology), and everything about accumulated
+# load across sessions.
+###############################################################################
+
+### THE PASS-2 MILESTONE: HRV suppressed against this user's OWN baseline.
+#
+# 14 days of steady HRV around 60, then a 45. Nothing here is an absolute
+# threshold -- see the very next request.
+#
+# Observed: readiness.state = suppressed, load_multiplier = 0.9,
+# "hrv_rmssd 45.0 is 6.5 SD below a 14-reading baseline of 60.0".
+# 4x8@80 -> 3x12@65.0. Volume 2560 -> 2340 (-8.6%), time 456 -> 453 (held).
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "context": {
+    "recovery_history": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-09T03:00:00Z",
+        "hrv_rmssd_ms": 45.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-08T07:00:00Z",
+        "hrv_rmssd_ms": 58.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-07T07:00:00Z",
+        "hrv_rmssd_ms": 62.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-06T07:00:00Z",
+        "hrv_rmssd_ms": 59.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-05T07:00:00Z",
+        "hrv_rmssd_ms": 61.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-04T07:00:00Z",
+        "hrv_rmssd_ms": 57.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-03T07:00:00Z",
+        "hrv_rmssd_ms": 63.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-02T07:00:00Z",
+        "hrv_rmssd_ms": 60.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-01T07:00:00Z",
+        "hrv_rmssd_ms": 58.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-31T07:00:00Z",
+        "hrv_rmssd_ms": 62.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-30T07:00:00Z",
+        "hrv_rmssd_ms": 61.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-29T07:00:00Z",
+        "hrv_rmssd_ms": 59.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-28T07:00:00Z",
+        "hrv_rmssd_ms": 60.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-27T07:00:00Z",
+        "hrv_rmssd_ms": 64.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-26T07:00:00Z",
+        "hrv_rmssd_ms": 56.0
+      }
+    ],
+    "as_of": "2026-08-09T07:00:00Z"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### THE SAME 45.0 ms READING, against a baseline 15 ms lower. NOT a deload.
+#
+# The single claim the whole module rests on: an identical reading is a crash
+# for one person and an ordinary Tuesday for another. Any absolute cutoff gets
+# exactly one of these two requests wrong.
+#
+# Observed: readiness.state = normal, load_multiplier = 1.0. The entry still
+# varies (3x12@70.0, dose_outcome = varied) -- volume-preserving, as always.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "context": {
+    "recovery_history": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-09T03:00:00Z",
+        "hrv_rmssd_ms": 45.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-08T07:00:00Z",
+        "hrv_rmssd_ms": 43.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-07T07:00:00Z",
+        "hrv_rmssd_ms": 47.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-06T07:00:00Z",
+        "hrv_rmssd_ms": 44.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-05T07:00:00Z",
+        "hrv_rmssd_ms": 46.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-04T07:00:00Z",
+        "hrv_rmssd_ms": 42.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-03T07:00:00Z",
+        "hrv_rmssd_ms": 48.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-02T07:00:00Z",
+        "hrv_rmssd_ms": 45.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-01T07:00:00Z",
+        "hrv_rmssd_ms": 43.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-31T07:00:00Z",
+        "hrv_rmssd_ms": 47.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-30T07:00:00Z",
+        "hrv_rmssd_ms": 46.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-29T07:00:00Z",
+        "hrv_rmssd_ms": 44.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-28T07:00:00Z",
+        "hrv_rmssd_ms": 45.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-27T07:00:00Z",
+        "hrv_rmssd_ms": 49.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-26T07:00:00Z",
+        "hrv_rmssd_ms": 41.0
+      }
+    ],
+    "as_of": "2026-08-09T07:00:00Z"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### One reading is UNKNOWN, not "fine". The distinction is load-bearing.
+#
+# A z-score off a single reading is noise, so the engine declines to judge --
+# and says so, rather than reporting a clean bill of health it did not earn.
+# Same for a baseline under 7 readings, or a newest reading over 48h old.
+#
+# Observed: readiness.state = unknown, load_multiplier = 1.0, comparisons = [].
+# The routine varies normally; nothing is deloaded.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine_name": "example_ppl",
+  "context": {
+    "recovery_history": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-09T03:00:00Z",
+        "hrv_rmssd_ms": 20.0
+      }
+    ],
+    "as_of": "2026-08-09T07:00:00Z"
+  },
+  "seed": 3
+}
+
+### Illness needs no baseline at all.
+#
+# Illness is not a z-score -- a user has no normal amount of fever to deviate
+# from -- so the flag stands alone with zero history. It short-circuits
+# straight to the strongest cutback.
+#
+# Observed: readiness.state = strongly_suppressed, load_multiplier = 0.75,
+# flags = ["illness_reported"]. 4x8@80 -> 3x12@52.5. Volume 2560 -> 1890,
+# time 456 -> 453 (still held).
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "context": {
+    "wellness_history": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-09T03:00:00Z",
+        "illness_reported": true
+      }
+    ],
+    "as_of": "2026-08-09T07:00:00Z"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### A deload reaches an entry the scheme search refuses to touch.
+#
+# 4x30 sits outside hypertrophy's 8-15 rep range, so candidate_rep_schemes
+# returns nothing and the entry is normally left alone with
+# dose_outcome = unvaried_no_scheme_in_objective_range (that is a settled
+# decision -- the search does not chase the range). A deload still has to land,
+# so under a reduced target the current scheme becomes a legal candidate: same
+# sets and reps, lighter load.
+#
+# Observed: 4x30@20 -> 4x30@17.5, dose_outcome = varied_for_strain.
+# Volume 2400 -> 2100 (-12.5%), time 720 held exactly.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "High-rep bench",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 30,
+          "weight": 20
+        }
+      }
+    ]
+  },
+  "context": {
+    "recovery_history": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-09T03:00:00Z",
+        "hrv_rmssd_ms": 45.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-08T07:00:00Z",
+        "hrv_rmssd_ms": 58.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-07T07:00:00Z",
+        "hrv_rmssd_ms": 62.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-06T07:00:00Z",
+        "hrv_rmssd_ms": 59.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-05T07:00:00Z",
+        "hrv_rmssd_ms": 61.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-04T07:00:00Z",
+        "hrv_rmssd_ms": 57.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-03T07:00:00Z",
+        "hrv_rmssd_ms": 63.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-02T07:00:00Z",
+        "hrv_rmssd_ms": 60.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-01T07:00:00Z",
+        "hrv_rmssd_ms": 58.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-31T07:00:00Z",
+        "hrv_rmssd_ms": 62.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-30T07:00:00Z",
+        "hrv_rmssd_ms": 61.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-29T07:00:00Z",
+        "hrv_rmssd_ms": 59.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-28T07:00:00Z",
+        "hrv_rmssd_ms": 60.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-27T07:00:00Z",
+        "hrv_rmssd_ms": 64.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-26T07:00:00Z",
+        "hrv_rmssd_ms": 56.0
+      }
+    ],
+    "as_of": "2026-08-09T07:00:00Z"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+###############################################################################
+# 9c. SESSION INTENT
+#
+# The other half of the adaptive tier, and the one that needs no data at all.
+# "How hard do you want this session to be?" is a DIRECTIVE, where readiness is
+# a MEASUREMENT -- so it needs no baseline, works on install day, and is not
+# health data. It is the control a real UI would put in front of the user;
+# recovery_history is the optional enrichment behind it.
+#
+#   light 0.85  |  moderate 1.00 (default)  |  challenging 1.15
+#
+# The two adaptive inputs MULTIPLY, and readiness additionally CAPS the result
+# at 1.0 whenever it binds -- see the fourth request, which is the case plain
+# multiplication gets wrong.
+#
+# Session length is held in every case. "Harder" means more total work in the
+# same window, not a longer workout and not a heavier top set -- the engine
+# solves load from volume and has no 1RM model yet.
+###############################################################################
+
+### LIGHT -- 15% less work, same session length.
+#
+# Observed: load_multiplier = 0.85. 4x8@80 -> 3x12@60.0.
+# Volume 2560 -> 2160, time 456 -> 453. dose_outcome = varied_for_session_intent.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "context": {
+    "session_intent": "light"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### MODERATE -- the default, and exactly the old volume-preserving behaviour.
+#
+# This must compose to a no-op, or every caller that never surfaces the control
+# silently changes behaviour.
+#
+# Observed: load_multiplier = 1.0. 4x8@80 -> 3x12@70.0.
+# Volume 2560 -> 2520 (within the 7.5% tolerance), dose_outcome = varied.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "context": {
+    "session_intent": "moderate"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### CHALLENGING -- 15% more work, still the same session length.
+#
+# Readiness is never allowed to raise a target on its own; an explicit user
+# directive is. The band is deliberately narrow: a dial wide enough to
+# self-prescribe a 50% jump would quietly become a progression mechanism with
+# none of periodization's safeguards.
+#
+# Observed: load_multiplier = 1.15. 4x8@80 -> 3x12@82.5.
+# Volume 2560 -> 2970, time 456 -> 453. dose_outcome = varied_for_session_intent.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "context": {
+    "session_intent": "challenging"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### THE CAP: challenging + suppressed HRV. Read this one carefully.
+#
+# 1.15 x 0.90 = 1.035, which would hand an under-recovered user MORE work than
+# their normal prescription -- precisely what the adaptive tier exists to
+# prevent. So a binding readiness caps the composed multiplier at 1.0.
+#
+# Note what this looks like in the response, because it is a trap: the dose is
+# genuinely volume-preserving, so every entry honestly reports
+# dose_outcome = varied, NOT varied_for_strain. The user asked for a hard
+# session and got a normal one, and the only thing that says so is the
+# combination of session_intent = challenging with readiness.state = suppressed
+# and load_multiplier = 1.0. (`RoutineVariation.intent_capped_by_readiness`
+# answers this directly in-process.)
+#
+# Observed: load_multiplier = 1.0, readiness.state = suppressed.
+# 4x8@80 -> 3x12@70.0, identical to the MODERATE request above.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "context": {
+    "recovery_history": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-09T03:00:00Z",
+        "hrv_rmssd_ms": 45.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-08T07:00:00Z",
+        "hrv_rmssd_ms": 58.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-07T07:00:00Z",
+        "hrv_rmssd_ms": 62.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-06T07:00:00Z",
+        "hrv_rmssd_ms": 59.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-05T07:00:00Z",
+        "hrv_rmssd_ms": 61.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-04T07:00:00Z",
+        "hrv_rmssd_ms": 57.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-03T07:00:00Z",
+        "hrv_rmssd_ms": 63.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-02T07:00:00Z",
+        "hrv_rmssd_ms": 60.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-08-01T07:00:00Z",
+        "hrv_rmssd_ms": 58.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-31T07:00:00Z",
+        "hrv_rmssd_ms": 62.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-30T07:00:00Z",
+        "hrv_rmssd_ms": 61.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-29T07:00:00Z",
+        "hrv_rmssd_ms": 59.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-28T07:00:00Z",
+        "hrv_rmssd_ms": 60.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-27T07:00:00Z",
+        "hrv_rmssd_ms": 64.0
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "recorded_at": "2026-07-26T07:00:00Z",
+        "hrv_rmssd_ms": 56.0
+      }
+    ],
+    "as_of": "2026-08-09T07:00:00Z",
+    "session_intent": "challenging"
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+###############################################################################
+# 10. TRAINING MEMORY
+#
+# The first endpoint that reads what the user actually DID, rather than what
+# they are. POST a session log, get back per-exercise performance records.
+#
+# `ExercisePerformanceRecord` is DERIVED data by design: recomputable from the
+# log, cached only because "what can this user lift on this movement?" is asked
+# on every prescription. So there is deliberately no way to hand one in -- the
+# records are always rebuilt from the sessions in the request.
+#
+# The headline field is estimated_one_rep_max_kg, and it matters more than it
+# looks: it is the reference that would make "heavy" mean something. Today the
+# engine solves load from volume, which is why §7(d) has to warn that a 4x8@80
+# bench becomes 4x4@160 under a strength objective. Nothing consumes e1RM yet
+# -- that is M8b.
+#
+# THREE REFUSALS, all deliberate. Each returns null rather than a number:
+#   - reps > 10        Epley and Brzycki are fitted on low-rep sets and diverge
+#                      sharply beyond; a 20-rep set is endurance evidence
+#   - load = 0         a bodyweight set has nothing to extrapolate from
+#   - reps = 1         not a refusal but a special case: a completed single IS
+#                      a 1RM, so it is returned as-is. Epley would otherwise
+#                      report 103.3 for a measured 100kg single
+#
+# `as_of` is required rather than defaulted to now, because the rolling windows
+# are measured back from it and reconstructing a past prescription must see the
+# history as it stood then.
+###############################################################################
+
+### A four-session log covering every interesting case at once.
+#
+# bench: a warm-up set (60x20, must not count), two working sets at 8x80, an
+#        older 5x85 and an older-still 10x70;
+# squat: a single session at 5x120;
+# push-up: bodyweight, unestimable;
+# plus a SKIPPED session holding the heaviest bench in the file (8x90) -- it is
+# adherence evidence, not strength evidence, and must not raise the estimate.
+#
+# Observed: exercises_with_estimate = 2, without = 1.
+#   barbell-bench-press  e1RM 101.33 (Epley on 8x80 -- beats 5x85's 99.17 and
+#                        10x70's 93.33; the skipped 8x90 that would have given
+#                        114.0 is correctly absent). 3 sessions, 4 working sets
+#                        (the warm-up is excluded), v7d 1280, v28d 2405,
+#                        average_rpe 8.375
+#   barbell-full-squat   e1RM 140.0, 1 session, v7d 600
+#   push-up              e1RM null, formula null -- but the record still exists
+#                        with 1 working set. Never-performed and
+#                        performed-but-unestimable are different states
+POST {{host}}/performance-records
+Content-Type: application/json
+
+{
+  "user_id": "11111111-1111-1111-1111-111111111111",
+  "sessions": [
+    {
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "performed_at": "2026-08-07T07:00:00Z",
+      "status": "completed",
+      "exercises": [
+        {
+          "exercise_id": "barbell-bench-press",
+          "order_index": 0,
+          "sets": [
+            {
+              "exercise_id": "barbell-bench-press",
+              "set_index": 0,
+              "reps_completed": 60,
+              "load_kg": 20,
+              "is_warmup": true
+            },
+            {
+              "exercise_id": "barbell-bench-press",
+              "set_index": 1,
+              "reps_completed": 8,
+              "load_kg": 80,
+              "is_warmup": false,
+              "rpe": 8.0
+            },
+            {
+              "exercise_id": "barbell-bench-press",
+              "set_index": 2,
+              "reps_completed": 8,
+              "load_kg": 80,
+              "is_warmup": false,
+              "rpe": 9.0
+            }
+          ]
+        },
+        {
+          "exercise_id": "barbell-full-squat",
+          "order_index": 0,
+          "sets": [
+            {
+              "exercise_id": "barbell-full-squat",
+              "set_index": 0,
+              "reps_completed": 5,
+              "load_kg": 120,
+              "is_warmup": false,
+              "rpe": 8.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "performed_at": "2026-07-31T07:00:00Z",
+      "status": "completed",
+      "exercises": [
+        {
+          "exercise_id": "barbell-bench-press",
+          "order_index": 0,
+          "sets": [
+            {
+              "exercise_id": "barbell-bench-press",
+              "set_index": 0,
+              "reps_completed": 5,
+              "load_kg": 85,
+              "is_warmup": false,
+              "rpe": 9.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "performed_at": "2026-07-24T07:00:00Z",
+      "status": "completed",
+      "exercises": [
+        {
+          "exercise_id": "barbell-bench-press",
+          "order_index": 0,
+          "sets": [
+            {
+              "exercise_id": "barbell-bench-press",
+              "set_index": 0,
+              "reps_completed": 10,
+              "load_kg": 70,
+              "is_warmup": false,
+              "rpe": 7.0
+            }
+          ]
+        },
+        {
+          "exercise_id": "push-up",
+          "order_index": 0,
+          "sets": [
+            {
+              "exercise_id": "push-up",
+              "set_index": 0,
+              "reps_completed": 25,
+              "load_kg": 0,
+              "is_warmup": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "performed_at": "2026-08-06T07:00:00Z",
+      "status": "skipped",
+      "exercises": [
+        {
+          "exercise_id": "barbell-bench-press",
+          "order_index": 0,
+          "sets": [
+            {
+              "exercise_id": "barbell-bench-press",
+              "set_index": 0,
+              "reps_completed": 8,
+              "load_kg": 90,
+              "is_warmup": false,
+              "rpe": 10.0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "as_of": "2026-08-09T07:00:00Z",
+  "formula": "epley"
+}
+
+###############################################################################
+# 11. PROGRESSION -- variation becomes programming
+#
+# `history` on /vary is what turns this engine from "vary a routine" into
+# "programme a routine". With it, an entry's load stops coming from the weight
+# written in the YAML and starts coming from what this user can currently lift.
+#
+# Before M8b, a user who had progressed from 80kg to 100kg over six weeks got
+# dragged back to 80 on every single run, because the file was the reference.
+#
+# FOUR LAYERS TOUCH THE LOAD, in this order. Each is a no-op on its own:
+#   input routine       the shape: sets x reps, and a fallback weight
+#   training memory     replaces the weight with what they can actually lift,
+#                       rescaled to the reps being prescribed (via e1RM)
+#   progression         moves that by one weight increment, up or down
+#   intent x readiness  scales the whole target for today
+#
+# THE DECISION reads the LAST session against the objective's own
+# target_rpe_range -- which is what finally consumes that field, declared since
+# M2 and read by nothing until now. Hypertrophy targets RPE 7-9:
+#   RPE below the band  -> progressed   (there was room)
+#   RPE inside the band -> held
+#   RPE above the band  -> backed off
+#   pain reported       -> backed off, whatever the RPE said
+#   form breakdown      -> held (the schema calls this "a signal to hold load
+#                         rather than progress it" -- a skill problem is not
+#                         solved by stripping weight)
+#   missed reps         -> held
+#   no RPE logged       -> held (progressing on silence would add load every
+#                         session for anyone who never logs effort)
+#
+# The routine in these requests deliberately says 80kg. The user benches 100.
+###############################################################################
+
+### HELD: last session sat inside the target band (RPE 8.0 vs 7-9).
+#
+# The load still moves, because the ROUTINE was stale even though the decision
+# was to hold. That is what `varied_at_remembered_load` means, as distinct from
+# `varied_for_progression`.
+#
+# Observed: decision = held, reference_load_kg = 100.0 (not the routine's 80).
+# Volume 2560 -> 3240, time 456 -> 453. 4x8@80 -> 3x12@90.0.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day (written six weeks ago)",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-09T07:00:00Z",
+    "sessions": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "performed_at": "2026-08-06T07:00:00Z",
+        "status": "completed",
+        "exercises": [
+          {
+            "exercise_id": "barbell-bench-press",
+            "order_index": 0,
+            "sets": [
+              {
+                "exercise_id": "barbell-bench-press",
+                "set_index": 0,
+                "reps_completed": 8,
+                "load_kg": 100.0,
+                "rpe": 8.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### PROGRESSED: last session was easier than the band (RPE 6.0 vs 7-9).
+#
+# Observed: decision = progressed, 100.0 -> 102.5, dose_outcome =
+# varied_for_progression.
+#
+# READ THIS BEFORE FILING A BUG. The prescribed output is 3x12@90.0 --
+# IDENTICAL to the HELD request above, and it stays identical even at
+# volume_tolerance 0.02. That is not the progression being ignored:
+#
+#   - the +2.5kg step is defined against the INPUT scheme, 4x8 = 32 reps,
+#     so it is 80 volume units;
+#   - the winning candidate is 3x12 = 36 reps, where one 2.5kg increment is
+#     90 volume units;
+#   - so the step is smaller than one increment at the output's granularity
+#     and rounds away.
+#
+# The decision is never hidden -- it is reported in `progression` regardless.
+# But a single increment is not guaranteed to survive a scheme change, and
+# chasing it by tightening volume_tolerance does not help. See HANDOFF.md §5.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day (written six weeks ago)",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-09T07:00:00Z",
+    "sessions": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "performed_at": "2026-08-06T07:00:00Z",
+        "status": "completed",
+        "exercises": [
+          {
+            "exercise_id": "barbell-bench-press",
+            "order_index": 0,
+            "sets": [
+              {
+                "exercise_id": "barbell-bench-press",
+                "set_index": 0,
+                "reps_completed": 8,
+                "load_kg": 100.0,
+                "rpe": 6.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### BACKED OFF: last session was harder than the band (RPE 9.5 vs 7-9).
+#
+# Observed: decision = backed_off, 100.0 -> 97.5. Volume 2560 -> 3150,
+# 4x8@80 -> 3x12@87.5. Here the step DOES survive rounding -- compare with the
+# request above to see how marginal that is.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day (written six weeks ago)",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-09T07:00:00Z",
+    "sessions": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "performed_at": "2026-08-06T07:00:00Z",
+        "status": "completed",
+        "exercises": [
+          {
+            "exercise_id": "barbell-bench-press",
+            "order_index": 0,
+            "sets": [
+              {
+                "exercise_id": "barbell-bench-press",
+                "set_index": 0,
+                "reps_completed": 8,
+                "load_kg": 100.0,
+                "rpe": 9.5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### THE DELOAD TRAP: last session was light, and must not become the new normal.
+#
+# Two sessions: 8x100 ten days ago, then 8x85 three days ago at RPE 6 -- a
+# strain-reduced week. Reading LAST SESSION'S WEIGHT forward would treat 85 as
+# the reference and compound the loss every session afterwards.
+#
+# The reference is derived from the estimated 1RM instead, which is a
+# best-over-history figure, so the light week leaves it untouched.
+#
+# Observed: reference_load_kg = 100.0, NOT 85.0. The easy session is still read
+# as a reason to progress -- from the real reference: working 102.5.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day (written six weeks ago)",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-09T07:00:00Z",
+    "sessions": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "performed_at": "2026-07-30T07:00:00Z",
+        "status": "completed",
+        "exercises": [
+          {
+            "exercise_id": "barbell-bench-press",
+            "order_index": 0,
+            "sets": [
+              {
+                "exercise_id": "barbell-bench-press",
+                "set_index": 0,
+                "reps_completed": 8,
+                "load_kg": 100.0,
+                "rpe": 8.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "performed_at": "2026-08-06T07:00:00Z",
+        "status": "completed",
+        "exercises": [
+          {
+            "exercise_id": "barbell-bench-press",
+            "order_index": 0,
+            "sets": [
+              {
+                "exercise_id": "barbell-bench-press",
+                "set_index": 0,
+                "reps_completed": 8,
+                "load_kg": 85.0,
+                "rpe": 6.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+### THE CONTROL: same routine, no history. The file's number stands.
+#
+# This is the compatibility guarantee -- every caller that supplies no history
+# sees exactly the pre-M8b behaviour.
+#
+# Observed: progression = null (not a "no_history" decision -- nothing was
+# consulted at all). Volume 2560 -> 2520, 4x8@80 -> 3x12@70.0,
+# dose_outcome = varied.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day (written six weeks ago)",
+    "entries": [
+      {
+        "exercise_id": "barbell-bench-press",
+        "dose": {
+          "kind": "reps",
+          "sets": 4,
+          "reps": 8,
+          "weight": 80
+        }
+      }
+    ]
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+
+###############################################################################
+# 12. LOAD MANAGEMENT -- the block, not the session
+#
+# The same session log as §10/§11, read per *session* rather than per exercise.
+# Two inputs, both of which only ever scale the volume target DOWN:
+#
+#   acute:chronic ratio   this week's load against this user's own four-week
+#                         average, from `history.sessions`
+#   taper                 a dated `context.target_event`, inside a 14-day window
+#
+# The log is posted once, in `history`, and feeds both M8b (per-exercise
+# remembered loads) and M8c (per-session accumulated load). Two copies of it in
+# one request would be two chances for them to disagree.
+#
+# `chronic_load_7d_equivalent` is the four-week window NORMALISED to one week --
+# that is what makes the ratio the conventional figure, near 1.0 for steady
+# training. A raw 28-day total would put a steady trainee at 0.25.
+#
+# The metric is chosen, never mixed: `context.load_metric` is session_rpe
+# (session_rpe x duration, the default, used below) or volume_load (reps x load
+# on the sets). A log carrying neither yields no workload assessment at all
+# rather than a silently substituted one.
+###############################################################################
+
+### (a) CONTROL: eleven sessions, every three days. A steady trainee.
+#
+# Observed: state "optimal", acute 1260 vs 1050 weekly average, ratio 1.20.
+# load_multiplier 1.0, dose_outcome "varied" -- the engine looked and this week
+# was ordinary. Note this is NOT the same output as posting no history at all,
+# where `load_management` is null: "we checked" and "we did not look" are
+# deliberately distinguishable.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {"exercise_id": "barbell-bench-press", "dose": {"kind": "reps", "sets": 4, "reps": 8, "weight": 80}}
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-10T07:00:00Z",
+    "sessions": [
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-09T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-06T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-03T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-31T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-28T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-25T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-22T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-19T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-16T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-13T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-10T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600}
+    ]
+  },
+  "context": {"as_of": "2026-08-10T07:00:00Z"},
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+
+### (b) THE DELOAD TRIGGER: the same block plus three extra sessions this week.
+#
+# Observed: state "spike", acute 2520 vs 1365 weekly average, ratio 1.85.
+# load_multiplier 0.75, dose_outcome "varied_for_load_management".
+# 4x8@80 (volume 2560, 456s) -> 3x12@52.5 (volume 1890, 453s).
+#
+# Note what did NOT move: the session is 453 seconds either way. A week's
+# accumulated load is a reason to lift lighter, never a reason to go home early
+# -- session length comes from the user's calendar.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {"exercise_id": "barbell-bench-press", "dose": {"kind": "reps", "sets": 4, "reps": 8, "weight": 80}}
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-10T07:00:00Z",
+    "sessions": [
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-10T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-09T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-08T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-06T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-05T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-03T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-31T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-28T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-25T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-22T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-19T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-16T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-13T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-10T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600}
+    ]
+  },
+  "context": {"as_of": "2026-08-10T07:00:00Z"},
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+
+### (c) THE GUARD: the same three-day rhythm, but only five sessions logged.
+#
+# This is the request that matters most in this section. The ratio comes out at
+# 2.40 -- higher than the genuine spike in (b) -- purely because the four-week
+# window is mostly empty. That is the standard criticism of this metric, and it
+# is why the state is "unknown" and load_multiplier is 1.0: a new user's second
+# ordinary week must not be deloaded on arithmetic about weeks they had not
+# started training in yet.
+#
+# Observed: state "unknown", ratio 2.40 reported anyway (the evidence travels
+# with the refusal), load_multiplier 1.0, dose_outcome "varied".
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {"exercise_id": "barbell-bench-press", "dose": {"kind": "reps", "sets": 4, "reps": 8, "weight": 80}}
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-10T07:00:00Z",
+    "sessions": [
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-09T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-06T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-03T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-31T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-28T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600}
+    ]
+  },
+  "context": {"as_of": "2026-08-10T07:00:00Z"},
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+
+### (d) THE TAPER: a meet in seven days, against the steady block from (a).
+#
+# Linear from 1.0 at fourteen days out to 0.55 on the day, so seven days out is
+# 0.775. Send this with event_date pushed to 2026-08-24 (14 days) and
+# 2026-08-10 (today) to see the ramp; push it to 2026-10-01 and the plan is
+# still reported -- "52 days away, outside the 14-day taper window" -- because
+# silence would read as the feature being missing.
+#
+# Observed: taper.load_multiplier 0.775, binding_taper true, workload still
+# "optimal" and visible in `explain` even though it did not bind.
+# 4x8@80 -> 3x12@55.0, volume 2560 -> 1980, time 456 -> 453.
+#
+# KNOWN LIMIT, and it matters here more than anywhere else in this file: a real
+# taper cuts volume and HOLDS intensity, so a lifter keeps touching near-maximal
+# loads on less total work. This engine solves weight from a volume target, so
+# the cut comes out as a lighter bar instead. Right shape for a strain deload,
+# wrong shape for peaking. See HANDOFF.md §5.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {"exercise_id": "barbell-bench-press", "dose": {"kind": "reps", "sets": 4, "reps": 8, "weight": 80}}
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-10T07:00:00Z",
+    "sessions": [
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-09T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-06T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-03T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-31T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-28T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-25T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-22T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-19T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-16T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-13T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-10T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600}
+    ]
+  },
+  "context": {
+    "as_of": "2026-08-10T07:00:00Z",
+    "target_event": {
+      "name": "Regional meet",
+      "event_date": "2026-08-17",
+      "event_type": "powerlifting meet",
+      "importance": 9
+    }
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+
+### (e) TAPER vs AMBITION: the same meet, and the user asks for a hard session.
+#
+# 1.15 x 0.775 = 0.891, so the request moves the number without overturning the
+# taper. Push the event to 2026-08-22 (12 days, taper 0.936) and the product
+# crosses 1.0, where the cap engages and `intent_capped_by_load_management`
+# turns true -- the same cancellation §9 documents for readiness, arriving by
+# the other route.
+#
+# Observed: load_multiplier 0.89125, volume 2560 -> 2250, dose_outcome
+# "varied_for_load_management", intent_capped_by_load_management false.
+POST {{host}}/vary
+Content-Type: application/json
+
+{
+  "routine": {
+    "name": "Bench day",
+    "entries": [
+      {"exercise_id": "barbell-bench-press", "dose": {"kind": "reps", "sets": 4, "reps": 8, "weight": 80}}
+    ]
+  },
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-10T07:00:00Z",
+    "sessions": [
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-09T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-06T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-08-03T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-31T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-28T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-25T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-22T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-19T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-16T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-13T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600},
+      {"user_id": "11111111-1111-1111-1111-111111111111", "performed_at": "2026-07-10T07:00:00Z", "status": "completed", "session_rpe": 7, "duration_seconds": 3600}
+    ]
+  },
+  "context": {
+    "as_of": "2026-08-10T07:00:00Z",
+    "session_intent": "challenging",
+    "target_event": {"name": "Regional meet", "event_date": "2026-08-17", "importance": 9}
+  },
+  "seed": 3,
+  "substitution_prob": 0
+}
+
+
+###############################################################################
+# 13. SESSION GENERATION -- no input routine at all
+#
+# Everything above varies a routine that already exists. This section builds one
+# from three answers a user can give on day one:
+#
+#   duration_minutes   the budget the session must fit
+#   muscles            what to train, in order
+#   difficulty         light | moderate | challenging, vs their own baseline
+#
+# The session comes back as BLOCKS. A block is one exercise slot carrying its
+# own volume and time -- the invariant that re-rolling it must preserve. That is
+# what makes (l) below safe: press re-roll as often as you like and the three
+# parameters above survive.
+#
+# Resistance work only. A muscle the library reaches only through cardio or
+# mobility work is reported, not silently dropped -- see (j).
+###############################################################################
+
+### (a) The baseline: 60 minutes, chest and back, normal difficulty.
+#
+# Time is split evenly across the requested muscles, then across the blocks each
+# muscle's share supports. One (sets, reps, rest) is solved so a block lands on
+# its share, inside hypertrophy's own ranges.
+#
+# Observed: 8 blocks (4 per muscle), 4x11@... r80 throughout, total 3616s
+# against a 3600s budget (+0.4%), volume 5390, fits_time_budget true,
+# starting_load_policy "conservative", unmet_constraints [].
+# Two of the eight are bodyweight and prescribe 0 kg -- correct, not missing.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals", "lats"],
+  "duration_minutes": 60,
+  "difficulty": "moderate",
+  "body_mass_kg": 80.0,
+  "seed": 7
+}
+
+### (b) LIGHT. Same seed, so the only variable is the difficulty.
+#
+# Observed: identical exercises, identical 4x11 scheme, identical 3616s.
+# Volume 5390 -> 4510 (x0.85). session_intent_load_multiplier 0.85.
+#
+# Difficulty moves the LOAD and never the time, because the scheme is already
+# fixed by the budget -- at fixed sets x reps, scaling load and scaling the
+# volume target are the same operation. It also deliberately does not change
+# WHICH exercises are chosen: that would make the three levels incomparable.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals", "lats"],
+  "duration_minutes": 60,
+  "difficulty": "light",
+  "body_mass_kg": 80.0,
+  "seed": 7
+}
+
+### (c) CHALLENGING. The other end of the same dial.
+#
+# Observed: volume 5390 -> 6160 (x1.15), time still 3616s, same 8 exercises.
+# The two bodyweight blocks are unchanged at 0 kg -- difficulty cannot reach a
+# block whose load is zero, which is a real limitation (docs/known-gaps.md).
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals", "lats"],
+  "duration_minutes": 60,
+  "difficulty": "challenging",
+  "body_mass_kg": 80.0,
+  "seed": 7
+}
+
+### (d) The objective reshapes the whole session, not just the loads.
+#
+# 45 minutes of quads under STRENGTH. Long rest means few blocks.
+#
+# Observed: 3 blocks, 4x3@... r220, 2730s against 2700 (+1.1%).
+# Compare with muscular_endurance below: same muscles, same budget, 4x20 r50.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["quads"],
+  "duration_minutes": 45,
+  "objective": "strength",
+  "body_mass_kg": 80.0,
+  "seed": 3
+}
+
+### (e) MUSCULAR ENDURANCE over the same 60 minutes as (a).
+#
+# Observed: 10 blocks, 4x20@... r50, exactly 3600s, volume 12600.
+# Short rest buys more blocks out of the same budget -- 10 against (a)'s 8.
+#
+# Note this objective cannot fill a much longer budget: a block caps near 7
+# minutes (4 sets, 25 reps, 60s rest) and MAX_BLOCKS_PER_MUSCLE caps the count,
+# so 90 minutes for two muscles comes back "time_budget_underfilled" rather
+# than padded. Try duration_minutes 90 to see it.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals", "lats"],
+  "duration_minutes": 60,
+  "objective": "muscular_endurance",
+  "body_mass_kg": 80.0,
+  "seed": 7
+}
+
+### (f) A budget too short for what was asked. The muscle is never dropped.
+#
+# 8 minutes for three muscles. One block per requested muscle is the floor, and
+# three legal blocks cannot fit in eight minutes.
+#
+# Observed: 3 blocks, 783s against a 480s budget, fits_time_budget false,
+# unmet_constraints ["time_budget_overshot"], muscles_uncovered [].
+#
+# The choice here is deliberate: overshoot the clock and say so, rather than
+# quietly train two muscles when three were requested.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals", "lats", "quads"],
+  "duration_minutes": 8,
+  "body_mass_kg": 80.0,
+  "seed": 1
+}
+
+### (g) No body mass and no history: the pool tilts to bodyweight work.
+#
+# A 0 kg bodyweight block is a real prescription. A 0 kg barbell block is not,
+# so with no basis for a load the selection prefers movements that need none.
+#
+# Observed: 5 blocks, every one bodyweight, load_source "bodyweight_only",
+# starting_load_policy "none_needed", is_prescribable true. total_volume 0 --
+# honest, since kg-reps of nothing is nothing (see Dose.load_volume).
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals"],
+  "duration_minutes": 45,
+  "seed": 2
+}
+
+### (h) No basis AND no bodyweight option: reported, never guessed.
+#
+# Barbells only, no body mass, no history. There is nothing to derive a weight
+# from and no bodyweight movement to fall back on.
+#
+# Observed: 5 blocks, load_source "no_basis" on all of them,
+# starting_load_policy "unresolved", is_prescribable FALSE,
+# unmet_constraints ["starting_load_unknown"] naming all five movements.
+#
+# The blocks still carry the movement and the scheme, which is real
+# information -- ask the user for a working weight and the rest stands. What
+# must not happen is showing 0 kg as a prescription.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["quads"],
+  "duration_minutes": 45,
+  "seed": 3,
+  "context": {
+    "preferences": {
+      "equipment_access": [
+        {"environment": "commercial_gym", "available_equipment": ["barbell"]}
+      ]
+    }
+  }
+}
+
+### (i) History outranks the conservative table.
+#
+# Two logged sets of front rack squat at 120 kg, RPE 6. Where the log covers a
+# movement, its load comes from the user's own estimated 1RM at the prescribed
+# rep count (M8b) rather than from body mass, and the RPE of that session then
+# moves it one increment -- all reported per block in `progression`.
+#
+# Observed: 5 blocks, 2700s exactly, starting_load_policy "mixed" (one block
+# remembered, three from the fractions, two bodyweight -- the session will feel
+# uneven by design, which is why "mixed" is its own word). The logged block:
+#
+#   Barbell Front Rack Squat  4x10@117.5  load_source "remembered"
+#   progression: decision "progressed", ref 114.0 -> working 116.5, RPE 6.0
+#   against hypertrophy's 7-9 target band -- easier than target, so it went up.
+#
+# Two details worth understanding, because both are invisible without them:
+#
+# 1. The scheme is 4x10, not the 4x11 of (a). MAX_ESTIMABLE_REPS is 10 and
+#    hypertrophy's mid-range is 11, so an 11-rep prescription would put every
+#    remembered load out of a rep-max formula's reach and history would be
+#    silently ignored. Supplying a log therefore nudges reps to 10. Time fit
+#    still wins -- the rep-max range only breaks ties.
+#
+# 2. `background` is doing real work here. Front rack squat is graded
+#    INTERMEDIATE, and the DEFAULT ceiling with no background sent is novice --
+#    so without it the movement is filtered out before history is ever
+#    consulted. Either raising experience_level or naming the movement in
+#    familiar_exercise_ids admits it; the latter is direct evidence of technique
+#    and overrides the ceiling outright. Check report.skill_filter, and see (p).
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["quads"],
+  "duration_minutes": 45,
+  "body_mass_kg": 80.0,
+  "seed": 15,
+  "background": {
+    "experience_level": "intermediate",
+    "familiar_exercise_ids": ["barbell-front-rack-squat"]
+  },
+  "context": {"preferences": {"preferred_exercise_ids": ["barbell-front-rack-squat"]}},
+  "history": {
+    "user_id": "11111111-1111-1111-1111-111111111111",
+    "as_of": "2026-08-12T09:00:00Z",
+    "sessions": [
+      {
+        "user_id": "11111111-1111-1111-1111-111111111111",
+        "performed_at": "2026-08-09T07:00:00Z",
+        "status": "completed",
+        "exercises": [
+          {
+            "exercise_id": "barbell-front-rack-squat",
+            "order_index": 0,
+            "sets": [
+              {"exercise_id": "barbell-front-rack-squat", "set_index": 0, "reps_completed": 8, "load_kg": 120, "rpe": 6},
+              {"exercise_id": "barbell-front-rack-squat", "set_index": 1, "reps_completed": 8, "load_kg": 120, "rpe": 6}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+### (j) A muscle the library only trains outside resistance work.
+#
+# This is where the functional/MET gap surfaces concretely. `vary_entry` cannot
+# re-solve a duration, distance or rounds dose, and `Exercise` has no MET column
+# to preserve as a cross-modality currency -- so cardio work can be neither
+# generated nor varied. See docs/known-gaps.md.
+#
+# Observed: 2 blocks (pectorals only), muscles_uncovered
+# ["cardiovascular_system"], is_prescribable false, unmet_constraints
+# ["modality_not_supported"] with a detail naming the dose search and MET.
+#
+# Note no "time_budget_underfilled" alongside it, even though the session fills
+# 20 of 40 minutes: the uncovered muscle IS why the time came up short, and
+# reporting both would send a reader hunting for a second cause.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["cardiovascular_system", "pectorals"],
+  "duration_minutes": 40,
+  "body_mass_kg": 80.0,
+  "seed": 1
+}
+
+### (k) Constraints reach generation exactly as they reach variation.
+#
+# A home gym with dumbbells to 20 kg. The equipment tier bounds selection, and
+# max_load_kg bounds the solved load.
+#
+# Observed: 5 blocks, all dumbbell, 4 of them capped at 20 kg with
+# load_capped_by_equipment true, one aggregated
+# unmet_constraints ["load_capped_by_equipment"] naming the four.
+# context_filter permitted 758 / 4531 (16.7%).
+#
+# Swap the preferences block for a health block (see §9) and the same thing
+# happens through the inviolable tier instead.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals"],
+  "duration_minutes": 45,
+  "body_mass_kg": 80.0,
+  "seed": 4,
+  "context": {
+    "preferences": {
+      "equipment_access": [
+        {
+          "environment": "home_gym",
+          "available_equipment": ["dumbbell"],
+          "is_default": true,
+          "max_load_kg": 20
+        }
+      ]
+    }
+  }
+}
+
+### (l) RE-ROLL ONE BLOCK. The whole point of blocks.
+#
+# This is block [0] of (a) -- "Dumbbell pullover" 4x11@25.0 r80, volume 1100,
+# time 452s -- posted back on its own. Change `seed` and re-send.
+#
+# Observed, at substitution_prob 1.0:
+#   seed 1  Dumbbell around pullover        3x10@37.5 r120  vol 1125  time 450
+#   seed 2  Dumbbell around pullover        5x8@27.5  r65   vol 1100  time 445
+#   seed 3  Dumbbell straight arm pullover  3x14@25.0 r110  vol 1050  time 456
+#
+# Every one: volume_preserved true, time_preserved true, target_preserved true,
+# load_multiplier 1.0.
+#
+# There is no `difficulty` and no `history` on this endpoint, and both
+# omissions are load-bearing. The block's 25 kg ALREADY embodies the
+# difficulty, readiness and accumulated load applied when the session was
+# generated. Sending them again would apply them twice -- a "challenging"
+# session climbing 15% on every press of the button, with nothing in the
+# per-block outcomes saying so. The context's health, equipment and preference
+# tiers are still honoured in full; only its adaptive tier is neutralised.
+POST {{host}}/sessions/blocks/vary
+Content-Type: application/json
+
+{
+  "block": {
+    "index": 0,
+    "exercise_id": "dumbbell-pullover",
+    "dose": {"kind": "reps", "sets": 4, "reps": 11, "weight": 25.0, "rep_seconds": 3.0},
+    "rest_seconds": 80,
+    "time_budget_seconds": 450.0
+  },
+  "substitution_prob": 1.0,
+  "seed": 1
+}
+
+### (m) Re-rolling a bodyweight block: the exercise moves, the dose cannot.
+#
+# Volume and time are both zero, so there is no weight to solve from. The
+# exercise still swaps, which is usually what the user wanted anyway.
+#
+# Observed: "Chest dip (on dip-pull-up cage)" -> "Wide hand push up", dose
+# unchanged at 4x11@0.0, dose_outcome "unvaried_no_candidate_within_tolerance",
+# exercise_outcome "substituted_for_variety", both invariants preserved
+# trivially. `is_variable` was already false on the generated block, so a client
+# can grey out the re-roll's dose half rather than looking broken.
+POST {{host}}/sessions/blocks/vary
+Content-Type: application/json
+
+{
+  "block": {
+    "exercise_id": "chest-dip-on-dip-pull-up-cage",
+    "dose": {"kind": "reps", "sets": 4, "reps": 11, "weight": 0.0, "rep_seconds": 3.0},
+    "rest_seconds": 100
+  },
+  "substitution_prob": 1.0,
+  "seed": 1
+}
+
+### (n) Difficulty stated twice and differently: rejected, not resolved.
+#
+# `session_intent` is a legitimate field of the context because /vary reads it
+# there. On this endpoint the session parameter is top-level, so a conflict is
+# an error rather than a silent preference -- the same instinct as
+# extra="forbid" on every request model here.
+#
+# Observed: 422, "difficulty and context.session_intent disagree".
+# Send them in agreement and it passes.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["pectorals"],
+  "duration_minutes": 30,
+  "difficulty": "light",
+  "body_mass_kg": 80.0,
+  "context": {"session_intent": "challenging"}
+}
+
+### (o) An objective with no strategy yet.
+# Observed: 400, listing the three that are implemented -- same guard as /vary.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["quads"],
+  "duration_minutes": 45,
+  "objective": "flexibility",
+  "body_mass_kg": 80.0
+}
+
+### (p) The skill ceiling, and why the report has to declare it.
+#
+# Experience level maps onto Exercise.difficulty, allowing one grade of stretch
+# above the user's own label. Send NOTHING and the ceiling is novice, because
+# beginner is the safe direction to default -- and that removes over a third of
+# the library before any other filter runs.
+#
+# Observed, same request with only `background` changing:
+#
+#   (none sent)     skill_ceiling "novice"        2816 / 4531  (62.1%)
+#   untrained       skill_ceiling "beginner"      1711 / 4531  (37.8%)
+#   intermediate    skill_ceiling "advanced"      4370 / 4531  (96.4%)
+#   elite           skill_ceiling "legendary"     4531 / 4531  (100%)
+#
+# This is reported separately from `context_filter` on purpose: that one only
+# knows about health, equipment and preferences, so a session drawn from 38% of
+# the library would otherwise show context_filter 4531/4531 and look unfiltered.
+# Same instinct as ContextFilterReport itself -- a pool this narrow produces
+# valid output that is useless, and the symptom is indistinguishable from the
+# engine simply finding nothing.
+#
+# Difficulty is absent for 1297 of 4531 exercises, and the ceiling fails OPEN on
+# those: absent means unknown, and failing closed would draw every session from
+# the functional source alone. Health contraindications are the tier that fails
+# closed -- see §9.
+POST {{host}}/sessions/generate
+Content-Type: application/json
+
+{
+  "muscles": ["quads"],
+  "duration_minutes": 45,
+  "body_mass_kg": 80.0,
+  "seed": 15,
+  "background": {"experience_level": "untrained"}
+}

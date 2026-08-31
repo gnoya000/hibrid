@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$CLAUDE_PROJECT_DIR\" ] || exit 0; case \"$f\" in \"$CLAUDE_PROJECT_DIR\"/*.py) cd \"$CLAUDE_PROJECT_DIR\" || exit 0; if [ ! -x .venv/bin/mypy ]; then jq -n '{systemMessage:\"hibrid: skipped the mypy --strict check - no .venv/bin/mypy. Run: python -m venv .venv && .venv/bin/pip install -e \\\".[dev]\\\"\"}'; exit 0; fi; out=$(.venv/bin/mypy src 2>&1); if [ $? -ne 0 ]; then jq -n --arg r \"$out\" '{decision:\"block\", reason: (\"mypy --strict found type errors after this edit:\\n\" + $r)}'; fi ;; esac; }",
+            "timeout": 60,
+            "statusMessage": "Running mypy --strict..."
+          }
+        ]
+      }
+    ]
+  }
+}

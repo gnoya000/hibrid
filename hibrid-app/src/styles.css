@@ -1,0 +1,140 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * hibrid design system — cream white + sunset orange.
+ * Soft light surfaces, rounded cards, modern fitness-app feel.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+  --radius-3xl: calc(var(--radius) + 20px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-neon: var(--neon);
+  --color-neon-foreground: var(--neon-foreground);
+  --color-cyan: var(--cyan);
+  --color-magenta: var(--magenta);
+  --color-amber: var(--amber);
+  --color-surface: var(--surface);
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+  --background: oklch(0.975 0.014 84);
+  --foreground: oklch(0.26 0.03 40);
+  --surface: oklch(0.995 0.006 90);
+  --card: oklch(0.995 0.006 90);
+  --card-foreground: oklch(0.26 0.03 40);
+  --popover: oklch(0.995 0.006 90);
+  --popover-foreground: oklch(0.26 0.03 40);
+  --primary: oklch(0.68 0.19 44);
+  --primary-foreground: oklch(0.99 0.008 90);
+  --secondary: oklch(0.955 0.017 76);
+  --secondary-foreground: oklch(0.32 0.04 42);
+  --muted: oklch(0.93 0.016 76);
+  --muted-foreground: oklch(0.55 0.035 55);
+  --accent: oklch(0.8 0.14 62);
+  --accent-foreground: oklch(0.26 0.05 42);
+  --destructive: oklch(0.6 0.2 22);
+  --destructive-foreground: oklch(0.99 0.008 90);
+  --border: oklch(0.9 0.02 74);
+  --input: oklch(0.9 0.02 74);
+  --ring: oklch(0.68 0.19 44);
+  --neon: oklch(0.68 0.19 44);
+  --neon-foreground: oklch(0.99 0.008 90);
+  --cyan: oklch(0.78 0.13 66);
+  --magenta: oklch(0.6 0.19 25);
+  --amber: oklch(0.83 0.15 82);
+  --shadow-arcade: 0 1px 2px color-mix(in oklab, var(--foreground) 6%, transparent),
+    0 10px 24px -12px color-mix(in oklab, var(--foreground) 18%, transparent);
+  --shadow-neon: 0 8px 20px -8px color-mix(in oklab, var(--primary) 55%, transparent);
+}
+
+.dark {
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(
+      120% 60% at 50% 0%,
+      color-mix(in oklab, var(--primary) 12%, transparent),
+      transparent 70%
+    );
+    background-repeat: no-repeat;
+  }
+}
+
+@utility arcade-panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-arcade);
+}
+
+@utility arcade-glow {
+  box-shadow: var(--shadow-neon);
+}
+
+@utility text-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+@utility scanlines {
+  position: relative;
+}
+
+@keyframes blink-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@utility blink {
+  animation: blink-caret 1s steps(1) infinite;
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}

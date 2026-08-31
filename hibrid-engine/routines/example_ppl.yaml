@@ -1,0 +1,38 @@
+routine_id: 8f14e45f-ceea-4b6b-9e63-3c2d0b0e3d0e
+name: Push Day
+entries:
+  - exercise_id: barbell-bench-press
+    dose:
+      kind: reps
+      sets: 4
+      reps: 8
+      weight: 80
+    rest_seconds: 120
+  - exercise_id: dumbbell-seated-shoulder-press
+    dose:
+      kind: reps
+      sets: 4
+      reps: 8
+      weight: 45
+    rest_seconds: 90
+  - exercise_id: dumbbell-incline-bench-press
+    dose:
+      kind: reps
+      sets: 3
+      reps: 10
+      weight: 27.5
+    rest_seconds: 90
+  - exercise_id: dumbbell-lateral-raise
+    dose:
+      kind: reps
+      sets: 3
+      reps: 12
+      weight: 10
+    rest_seconds: 60
+  - exercise_id: cable-pushdown
+    dose:
+      kind: reps
+      sets: 3
+      reps: 12
+      weight: 25
+    rest_seconds: 60

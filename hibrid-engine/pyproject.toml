@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hibrid"
+version = "0.1.0"
+description = "Fitness routine variation engine"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "mypy>=1.10", "types-PyYAML>=6.0", "httpx>=0.27"]
+api = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+hibrid = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+# tools/ is included even though it is not shipped: the dataset importer holds
+# the muscle/equipment normalisation maps, and a typo there corrupts the whole
+# generated library silently.
+files = ["src", "tools"]
+mypy_path = "src"
